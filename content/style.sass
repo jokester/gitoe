@@ -1,0 +1,76 @@
+body,html
+  padding: 0px
+  margin: 0px
+
+body
+  background-color: #222
+#control, #sidebar
+  background-color: #333
+#gitoe-canvas
+  background-color: #444
+#flash
+  background-color: #444
+
+$height_all: 90%
+$width_all : 90%
+#all
+  display: table
+  height: 90%
+  width: 90%
+  position: absolute
+  top: (50%-$height_all/2)
+  left: (50%-$width_all/2)
+  background-color: #333
+
+#row1, #row2
+  display: table-row
+.col1, .col2
+  display: table-cell
+#row1
+  height: 90%
+#row2
+  height: 10%
+.col1
+  width: 80%
+.col2
+  width: 20%
+
+#gitoe-canvas
+  width: 100%
+  height: 100%
+
+#sidebar
+  overflow-y: scroll
+  vertical-align: top
+  color: #bbb
+  ul
+    height: 0px
+    li
+      list-style: none
+#control, #flash
+  vertical-align: middle
+  padding-left: 20px
+  color: red
+
+.repo_path
+  font-size: 2em
+
+#flash
+  .banner
+    font-size: 1.3em
+  .text
+
+// took from http://css-tricks.com/custom-scrollbars-in-webkit/
+::-webkit-scrollbar
+  width: 10px
+::-webkit-scrollbar-track
+  //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3)
+  -webkit-border-radius: 10px
+  border-radius: 10px
+::-webkit-scrollbar-thumb
+  -webkit-border-radius: 10px
+  border-radius: 10px
+  background: rgba(255,0,0,0.8)
+  //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5)
+//::-webkit-scrollbar-thumb:window-inactive
+    background: rgba(255,0,0,0.4)

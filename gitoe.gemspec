@@ -8,8 +8,8 @@ Gem::Specification.new do |gem|
   gem.version       = Gitoe::VERSION
   gem.authors       = ["Wang Guan"]
   gem.email         = ["momocraft@gmail.com"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = %q{Write a gem description}
+  gem.summary       = %q{Write a gem summary}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($/)
@@ -17,6 +17,14 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
-  gem.add_runtime_dependency "grape"
-  gem.add_runtime_dependency "rugged"
+  gem.add_runtime_dependency "rugged"       # git
+  gem.add_runtime_dependency "sinatra"      # web server
+
+  gem.add_development_dependency "nanoc"
+  gem.add_development_dependency "listen"
+  gem.add_development_dependency "haml"
+  gem.add_development_dependency "sass"
+  gem.add_development_dependency "coffee-script"
+
+  gem.add_development_dependency "thin"
 end

@@ -1,0 +1,31 @@
+!!!5
+%html
+  %head
+    %link(rel="stylesheet" type="text/css" href="style.css")
+    %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
+    %script(src="http://fabricjs.com/lib/fabric.js")
+      / TODO until it can be found at cdnjs.com
+    %script(src="gitoe.js")
+    %title Gitoe -- under construction
+  %body
+    #all
+      #row1
+        #main.col1
+          %canvas#gitoe-canvas
+        #sidebar.col2
+          %ul#history
+            %li 1
+            %li 1
+            %li 1
+            %li 1
+            %li 1
+            %li last
+      #row2
+        #control.col1
+        #flash.col2
+          .banner
+            to open a repo
+          .text
+            input its path on disk
+            %br
+            and click "OPEN"

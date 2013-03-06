@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+require "sinatra"
+require "gitoe/httpserver/static"
+require "gitoe/httpserver/repos"
+
+handler = \
+  begin
+    require "thin"
+    Rack::Handler::Thin
+  rescue LoadError
+    false
+  end ||
+
+handler ||= \
+  begin
+    require "mongrel"
+    Rack::Handler::Mongrel
+  rescue LoadError
+    false
+  end
+
+handler ||= \
+  Rack::Handler::WEBrick
+
+root = Rack::Builder.new do
+
+  use Rack::Deflater
+  map "/repo" do run Gitoe::HTTPServer::Repos.new  end
+  map "/"     do run Gitoe::HTTPServer::Static.new end
+
+end
+
+root = Rack::Reloader.new(root,cooldown=0) if ENV["RACK_ENV"]=="development"
+
+handler.run root, Port: 3000

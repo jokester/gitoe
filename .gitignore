@@ -3,6 +3,7 @@
 .bundle
 .config
 .yardoc
+.sass-cache
 Gemfile.lock
 InstalledFiles
 _yardoc
@@ -15,3 +16,5 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
+
+crash.log
