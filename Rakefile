@@ -10,4 +10,9 @@ task :run do
   sh "bundle exec gitoe"
 end
 
+task :log do
+  ENV["RACK_ENV"] = "development"
+  sh "bundle exec test/test.rb"
+end
+
 task :default => :run

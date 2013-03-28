@@ -3,10 +3,19 @@ require "gitoe/repo/repo"
 require "rugged"
 
 module Gitoe::Repo
-  class Rugged_no_cache
+  class Rugged_backend
+
+    # implements
+    #   path       :: -> String
+    #   commit     :: sha1::String -> { prop:val }
+    #   refs       :: -> { ref_name : reflogs }
+    #   ref        :: String -> reflogs
+
+    # private
+    #   ref_names  :: -> [ String ]
+    #   reflog     :: String -> [ {} ]
 
     include ::Rugged
-    extend Query
 
     def initialize path
       @rugged = Repository.new path
@@ -16,36 +25,25 @@ module Gitoe::Repo
       @rugged.path
     end
 
-    Resources = Set[ 'commit', 'ref' ]
-    def resource(res_type, res_id)
-      raise "invalid resource type" unless Resources.include? res_type
-      send( res_type.to_sym, res_id )
-    end
-
     def commit sha1
-      commit = @rugged.lookup(sha1)
-      raise "not a commit" unless commit.is_a? Commit
+      #$stderr.write "actually looked up sha1=#{sha1}\n"
+      commit_obj = @rugged.lookup(sha1)
+      raise "not a commit" unless commit_obj.is_a? Commit
       {
-        :sha1    => commit.oid,
-        :parents => commit.parents.map(&:oid),
-      }
-    end
-
-    def ref_names
-      @rugged.refs.to_a.each do |ref_name|
-        ref_name.sub! %r{^/}, ""
-      end << "HEAD"
+        :sha1    => commit_obj.oid,
+        :parents => commit_obj.parents.map(&:oid),
+      }.freeze
     end
 
     def refs
-      refs = {}
+      ret = {}
       ref_names.each do |ref_name|
-        refs[ref_name] = ref(ref_name)
+        ret[ref_name] = ref(ref_name)
       end
-      refs
+      ret
     end
 
-    def ref name
+    def ref(name)
       resolved = Reference.lookup(@rugged, name)
       {
         :name   => resolved.name     ,
@@ -55,18 +53,32 @@ module Gitoe::Repo
       }
     end
 
+    private
+
+    def ref_names
+      @rugged.refs.to_a.each do |ref_name|
+        ref_name.sub! %r{^/} => ""
+      end << "HEAD"
+    end
+
     def reflog ref
       raise "demand Reference" unless ref.is_a? Reference
-      ref.log.each do |change|
+      log =
+        begin
+          ref.log
+        rescue
+          []
+        end
+      log.each do |change|
         change[:committer][:time] = change[:committer][:time].to_i # seconds from epoch
       end
-    rescue
-      []
     end
 
   end
 
-  class Rugged < Rugged_no_cache
+  class Rugged_with_cache < Rugged_backend
+    extend Query
     include Cache
+    # ancestors: [Rugged_with_cache, Cache, Rugged_backend]
   end
 end

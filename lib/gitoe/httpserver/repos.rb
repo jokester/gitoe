@@ -7,7 +7,7 @@ require "json"
 module Gitoe::HTTPServer
   class Repos < ::Sinatra::Base
 
-    Repo = ::Gitoe::Repo::Rugged
+    Repo = ::Gitoe::Repo::Rugged_with_cache
 
     set :environment, :production
 
@@ -29,7 +29,7 @@ module Gitoe::HTTPServer
       json :index => Repo.instances[:by_arg]
     end
 
-    # new
+    # create
     post "/new" do
       # create instance if not existing
       # and return id
@@ -37,12 +37,17 @@ module Gitoe::HTTPServer
       json :id => Repo.id_for(path)
     end
 
-    # show ( clone )
+    # show
     get "/:repo_id/?" do
       repo = Repo.find params["repo_id"]
-      json :clone => repo.clone
+      json :status => repo.status
     end
 
+   # Resources = Set[ 'commit', 'ref' ]
+   # def resource(res_type, res_id)
+   #   raise "invalid resource type" unless Resources.include? res_type
+   #   send( res_type.to_sym, res_id )
+   # end
     # sub namespace
     #get "/:repo_id/:resource_type/?:resource_id?" do
     get "/:repo_id/**" do
