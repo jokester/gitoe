@@ -4,8 +4,19 @@ F = fabric
 log = (args...)->
   console.log(args...)
 
-flash = (text)->
-  $("#flash").text(text)
+flash = do->
+  flash_counter = 0
+  (text,delay=5000)->
+    flash_div = $("#flash")
+    current_counter = ++flash_counter
+    clear = ()->
+      if current_counter==flash_counter
+        log "clear #{text}"
+        flash_div.text("")
+      else
+        log "not clearing #{text}"
+    flash_div.text(text)
+    setTimeout(clear, delay)
 
 repo_root = "/repo"
 
@@ -67,4 +78,3 @@ class GitoeController
   Repo: GitoeRepo
 
 $ ()->
-  flash 'hello'
