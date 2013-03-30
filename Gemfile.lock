@@ -19,6 +19,7 @@ GEM
     eventmachine (1.0.3)
     execjs (1.4.0)
       multi_json (~> 1.0)
+    ffi (1.6.0)
     haml (4.0.1)
       tilt
     listen (0.7.3)
@@ -28,6 +29,8 @@ GEM
     rack (1.5.2)
     rack-protection (1.5.0)
       rack
+    rb-inotify (0.9.0)
+      ffi (>= 0.5.0)
     rugged (0.16.0)
     sass (3.2.7)
     sinatra (1.4.2)
@@ -49,5 +52,6 @@ DEPENDENCIES
   haml
   listen
   nanoc
+  rb-inotify (~> 0.9)
   sass
   thin

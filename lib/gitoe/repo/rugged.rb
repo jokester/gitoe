@@ -57,7 +57,7 @@ module Gitoe::Repo
 
     def ref_names
       @rugged.refs.to_a.each do |ref_name|
-        ref_name.sub! %r{^/} => ""
+        ref_name.sub! %r{^/} , ""
       end << "HEAD"
     end
 
