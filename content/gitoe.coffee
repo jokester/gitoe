@@ -7,26 +7,26 @@ log = (args...)->
 flash = do->
   flash_counter = 0
   (text,delay=5000)->
+    # delay :: number      -> clear flash after x ms
+    #          false       -> do not clear
+    #          unspecified -> clear after (default) ms
     flash_div = $("#flash")
     current_counter = ++flash_counter
     clear = ()->
       if current_counter==flash_counter
-        log "clear #{text}"
         flash_div.text("")
-      else
-        log "not clearing #{text}"
     flash_div.text(text)
-    setTimeout(clear, delay)
+    setTimeout(clear, delay) if delay
 
 repo_root = "/repo"
 
 class GitoeRepo
   constructor: (@cb)->
-    @cb ?= {}
     # @cb:
     #   ajax_error    :(jqXHR)->
     #   open_success  :()->
     #   clone_success :()->
+    @cb ?= {}
     @commits_by_sha1 = {}
   open: (path)->
     $.post("#{repo_root}/new",{path: path})
@@ -46,7 +46,6 @@ class GitoeRepo
       @commits_by_sha1[ sha1 ] = content
       commit_count++
     log commit_count, @commits_by_sha1
-
   ajax_error: (jqXHR)=>
     flash JSON.parse(jqXHR.responseText).error_message
 
