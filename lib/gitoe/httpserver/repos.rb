@@ -34,7 +34,11 @@ module Gitoe::HTTPServer
       # create instance if not existing
       # and return id
       path = params["path"] or raise "path not specified"
-      json :id => Repo.id_for(path)
+      repo_id = Repo.id_for(path)
+      repo = Repo.find repo_id
+      json \
+        :id => repo_id ,
+        :path => repo.path
     end
 
     # show
@@ -43,17 +47,20 @@ module Gitoe::HTTPServer
       json :status => repo.status
     end
 
-   # Resources = Set[ 'commit', 'ref' ]
-   # def resource(res_type, res_id)
-   #   raise "invalid resource type" unless Resources.include? res_type
-   #   send( res_type.to_sym, res_id )
-   # end
     # sub namespace
-    #get "/:repo_id/:resource_type/?:resource_id?" do
+    # get "/:repo_id/:resource_type/?:resource_id?" do
+    Resources = Set[ 'commits' ].freeze
     get "/:repo_id/**" do
       repo = Repo.find( params["repo_id"] )
-      resource,rest = params[:splat].last.split('/',2)
-      json resource => repo.resource(resource, rest)
+      resource,arg = params[:splat].last.split('/',2)
+      # /0/commits/aaaaaaa/b/c/d
+      # => {
+      #   repo_id: "0",
+      #   resource: "commits"
+      #   arg: "aaaaaaa/b/c/d"
+      # }
+      raise "invalid resource type" unless Resources.include? resource
+      json resource => repo.send(resource.to_sym, arg)
     end
 
   end
