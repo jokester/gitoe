@@ -3,9 +3,7 @@
   <head>
     <link href='style.css' rel='stylesheet' type='text/css'>
     <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js'></script>
-    <script src='http://fabricjs.com/lib/fabric.js'>
-      <!-- TODO until it can be found at cdnjs.com -->
-    </script>
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.1.0/fabric.all.min.js'></script>
     <script src='gitoe.js'></script>
     <title>Gitoe -- under construction</title>
   </head>
@@ -13,7 +11,7 @@
     <div id='all'>
       <div id='row1'>
         <div class='col1' id='main'>
-          <canvas id='gitoe-canvas'></canvas>
+          <canvas id='graph'></canvas>
         </div>
         <div class='col2' id='sidebar'>
           <ul id='history'>
@@ -28,16 +26,7 @@
       </div>
       <div id='row2'>
         <div class='col1' id='control'></div>
-        <div class='col2' id='flash'>
-          <div class='banner'>
-            to open a repo
-          </div>
-          <div class='text'>
-            input its path on disk
-            <br>
-            and click "OPEN"
-          </div>
-        </div>
+        <div class='col2' id='flash'></div>
       </div>
     </div>
   </body>

@@ -2,46 +2,26 @@ $ = jQuery
 F = fabric
 
 log = (args...)->
-  console.log args...
+  console.log(args...)
 
-doc = document
+flash = (text)->
+  $("#flash").text(text)
 
 repo_root = "/repo"
 
-flash =
-  banner: (text)->
-    $("#flash .banner").text(text)
-
-update_flash = {
-  banner: (banner)->
-    log $("#flash .banner").text(banner)
-  from_jqXHR: (jqXHR)->
-    response = $.parseJSON(jqXHR.responseText)
-    @from_json( response )
-  from_json: (obj...)=>
-    log obj...
-    log @
-    update_flash.banner(obj.succeed)
-    #this.banner(obj.succeed)
-  
-}
-
-
 class Repo
-  constructor: (repo_path,cb)->
-    @k
-  after_open: (cb)->
-    cb?()
-
-class GitoeRepo extends Repo
-  constructor: (clone_json)->
-    super
-
-class GitoeVis
-  constructor: (id_container)->
+  constructor: (@cb)->
+  open: (path)->
+    $.post("#{repo_root}/new",{path: path})
+     .done(@ajax_open_success)
+     .fail(@ajax_error)
+  ajax_open_success: (json)=>
+    throw "already opened" if @path
+    @path = "#{repo_root}/#{json.id}"
+  ajax_error: (jqXHR)->
+    flash JSON.parse(jqXHR.responseText).error_message
 
 class GitoeController
-
   constructor: (id_container, id_control)->
     kanvas = new GitoeVis( id_container )
     @control = $("##{id_control}") or throw ("##{id_control} not found")
@@ -61,6 +41,8 @@ class GitoeController
       .done(update_flash.from_json)
       .fail(update_flash.from_jqXHR)
 
+@gitoe =
+  Repo: Repo
 
 $ ()->
-  vis = new GitoeController("gitoe-canvas", "control")
+  flash 'hello'
