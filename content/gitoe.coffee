@@ -52,9 +52,7 @@ class GitoeController
 
   init_control: ()->
     @repo_path = $("<input>")
-      .attr( value: "/home/mono/config" )
-      .one "click", ()->
-        $(@).attr( value:"" )
+      .attr( "value", "/home/mono/config" )
     @open_repo = $("<button>")
       .text("OPEN")
       .on("click", @open_repo)
@@ -63,6 +61,7 @@ class GitoeController
     $.post("#{repo_root}/new", { path: @repo_path.val() })
       .done(update_flash.from_json)
       .fail(update_flash.from_jqXHR)
+  open_repo_success: ()=>
 
 @gitoe =
   Repo: GitoeRepo
