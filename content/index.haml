@@ -1,24 +1,34 @@
 !!!5
-%html
+%html(lang='en')
   %head
+    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css")
+    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.min.css")
     %link(rel="stylesheet" type="text/css" href="style.css")
     %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
     %script(src="http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.1.0/fabric.all.min.js")
+    %script(src="/bootstrap/js/bootstrap.min.js")
     %script(src="gitoe.js")
-    %title Gitoe -- under construction
+    %title gitoe
   %body
-    #all
-      #row1
-        #main.col1
-          %canvas#graph
-        #sidebar.col2
-          %ul#history
-            %li 1
-            %li 1
-            %li 1
-            %li 1
-            %li 1
-            %li last
-      #row2
-        #control.col1
-        #flash.col2
+    #all.container
+      #container.row
+        #col1.span3
+          #banner
+            %h1 gitoe
+          #control-open
+            %form.form-inline
+              %legend open repo
+              %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/config")
+              %a.btn#button-open-repo
+                %i.icon-folder-open
+          #history
+            %ul
+              %li 1
+              %li 1
+              %li 1
+              %li 1
+              %li 1
+              %li last
+        #col2.span9
+          #canvas-container
+            %canvas#canvas

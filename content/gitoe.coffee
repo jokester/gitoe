@@ -27,6 +27,7 @@ class GitoeRepo
     #   new_commit    :(commit)->
     #   new_reflog    :(reflogs)->
     @commits_by_sha1 = {}
+    # TODO change to support ordered cache
   open: (path,after_open)=>
     $.post("#{repo_root}/new",{path: path})
       .fail(@ajax_error)
@@ -38,6 +39,7 @@ class GitoeRepo
         external_cb?()
   fetch_commits: (after_fetch_commits)->
     throw "not opened" unless @path
+    # TODO only fetch new commits
     $.get("#{@path}/commits")
       .fail(@ajax_error)
       .done(@ajax_fetch_commits_success, after_fetch_commits)
@@ -68,9 +70,9 @@ class GitoeRepo
   new_reflog: (reflogs)=>
     @cb.new_reflog?( reflogs )
 
-
 class GitoeCanvas
   constructor: ( id_canvas, @cb )->
+    @canvas = $("##{id_canvas}") or throw "##{id_control} not found"
 
 class GitoeController
   constructor: (id_control, id_canvas)->
@@ -78,9 +80,9 @@ class GitoeController
     @init_vis(id_canvas)
     @init_control(id_control)
   init_repo: ()->
-    @repo = new Repo()
+    @repo = new GitoeRepo()
   init_vis:(id_canvas)->
-    @vis = new Vis( id_canvas , {} )
+    @vis = new GitoeCanvas( id_canvas , {} )
   init_control: (id_control)->
     control = $("##{id_control}") or throw "##{id_control} not found"
     input_repo_path = $("<input>")
@@ -88,20 +90,20 @@ class GitoeController
     button_open_repo = $("<button>")
       .text("OPEN")
       .on("click", @open_repo)
-    control.append( input_repo_path, button_open_repo )
+      #control.append( input_repo_path, button_open_repo )
     @control =
-      parent          : control
-      input_repopath  : repo_path
-      button_openrepo : button_openrepo
-  open_repo: (path)=>
-    @repo.open path
-  open_repo_success: ()=>
+      parent           : control
+      input_repo_path  : input_repo_path
+      button_open_repo : button_open_repo
+  open_repo: ()=>
+    path = @control.input_repo_path.val()
+    @repo.open(path, @open_repo_success)
+  open_repo_success: (response)=>
+    log response
+    flash "opened repository #{response.path}"
 
 @gitoe =
   Repo: GitoeRepo
 
 $ ()->
-  window.a = new GitoeRepo {
-    new_commit: (commits)->
-    new_reflog: ->
-  }
+  @c = new GitoeController( "control", "graph" )

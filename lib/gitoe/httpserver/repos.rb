@@ -34,7 +34,11 @@ module Gitoe::HTTPServer
       # create instance if not existing
       # and return id
       path = params["path"] or raise "path not specified"
-      json :id => Repo.id_for(path)
+      repo_id = Repo.id_for(path)
+      repo = Repo.find repo_id
+      json \
+        :id => repo_id ,
+        :path => repo.path
     end
 
     # show

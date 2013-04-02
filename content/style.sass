@@ -1,65 +1,48 @@
-body,html
-  padding: 0px
-  margin: 0px
-
-body
-  background-color: #000
-#control, #sidebar
-  background-color: #222
-#gitoe-canvas
-  background-color: #333
-#flash
-  background-color: #444
-
-$height_all: 90%
-$width_all : 90%
-#all
-  display: table
-  height: 90%
-  width: 90%
-  position: absolute
-  top: (50%-$height_all/2)
-  left: (50%-$width_all/2)
-  background-color: #333
-
-#row1, #row2
-  display: table-row
-.col1, .col2
-  display: table-cell
-#row1
-  height: 90%
-#row2
-  height: 10%
-.col1
-  width: 80%
-.col2
-  width: 20%
-
-#gitoe-canvas
+#col1, #col2
+#graph
   width: 100%
-  height: 100%
+  height: 600px
+#banner
+  width: 100%
+  padding: 5px
+#canvas-container
+  #canvas
+    background-color: #eee
+    width: 100%
+    height: 700px
+    margin: 10px 0px
 
-#sidebar
-  overflow-y: scroll
-  vertical-align: top
-  color: #bbb
-  ul
-    height: 0px
-    li
-      list-style: none
-#control, #flash
-  vertical-align: middle
-  padding-left: 20px
-  color: red
-
-.repo_path
-  font-size: 2em
-
-#flash
-  .banner
-    font-size: 1.3em
-  .text
-
+//
+  #container
+    height: 100%
+    width: 100%
+    display: table
+    #flash-container
+      background: rgba(160,216,239,1)
+      position: fixed
+      bottom: 0px
+      min-width: 260px
+      padding: 20px
+      z-index: 5
+      #flash
+      #flash:empty
+        display: none
+    #col1, #col2
+      height: 100%
+    #col1
+      position: fixed
+      background: #ccc
+      width: 300px
+      #control, #sidebar
+        padding: 20px
+      #control
+      #sidebar
+        ul#history
+    #col2
+      background: #eee
+      width: 900px
+      margin-left: 300px
+      canvas#graph
 // took from http://css-tricks.com/custom-scrollbars-in-webkit/
 ::-webkit-scrollbar
   width: 10px
