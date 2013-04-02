@@ -19,4 +19,8 @@ task :watch do
   sh "bundle exec nanoc watch"
 end
 
+task :compile do
+  sh "bundle exec nanoc"
+end
+
 task :default => :run
