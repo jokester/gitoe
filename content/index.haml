@@ -12,27 +12,43 @@
   %body
     #all.container
       #container.row
+
         #col1.span3
           %span#flash.alert
           #banner
             %h1 gitoe
-          #control-repo
-            %legend repo
+          #control-repo_open
+            %legend open repository
             %form.form-inline
               %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/config")
               %a.btn#button-open-repo
                 %i.icon-folder-open
-          #control-refs.hidden
+          #control-repo_status
+            %legend
+              status
+            %ul#repo-status
+              %li
+                %span.commits.badge.badge-info ?
+                %span commits
+              %li
+                %span.branches.badge.badge-info ?
+                %span branches
+              %li
+                in
+                %span.path.badge.badge-info ???
+              / TODO a refresh-repo button around here
+          #control-refs
             %legend refs
-          #control-history.hidden
+          #control-history
             %legend history
-            %ul
+            %ul#history
               %li 1
               %li 1
               %li 1
               %li 1
               %li 1
               %li last
+
         #col2.span9
           #canvas-container
             %canvas#graph

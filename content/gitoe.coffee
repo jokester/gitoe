@@ -18,50 +18,47 @@ flash = do->
     flash_div.text(text)
     setTimeout(clear, delay) if delay
 
-repo_root = "/repo"
 
+url_root = "/repo"
 class GitoeRepo
-
   constructor: (@cb={})->
     # @cb: triggered unconditionally
     #   ajax_error    :(jqXHR)->
     #   new_commit    :(commit)->
     #   new_reflog    :(reflogs)->
-    #   open_success  :()->
-    #   open_fail     :()->
     #   status        :(string)->
     # TODO change to support ordered cache
     @commits_by_sha1 = {}
 
   open: (path,cb)=>
-    # open_cb:
+    # cb:
     #   success: ()->
     #   fail   : ()->
-    $.post("#{repo_root}/new",{path: path})
-      .fail(@ajax_error,open_cb.fail)
-      .done(@ajax_open_success, open_cb.success)
+    $.post("#{url_root}/new",{path: path})
+      .fail(@ajax_error, cb.fail)
+      .done(@ajax_open_success, cb.success)
 
-  fetch: (external_cb)=>
-    self = @
-    self.fetch_commits ()->
-      self.fetch_refs ()->
-        external_cb?()
-
-  fetch_commits: (after_fetch_commits)->
+  fetch_commits: (cb)->
+    # cb:
+    #   success: ()->
+    #   fail   : ()->
     throw "not opened" unless @path
     # TODO only fetch new commits
     $.get("#{@path}/commits")
-      .fail(@ajax_error)
-      .done(@ajax_fetch_commits_success, after_fetch_commits)
+      .fail(@ajax_error, cb.fail)
+      .done(@ajax_fetch_commits_success, cb.success)
 
-  fetch_refs: (after_fetch_refs)->
+  fetch_refs: (cb)->
+    # cb:
+    #   success: ()->
+    #   fail   : ()->
     $.get("#{@path}/")
-      .fail(@ajax_error)
-      .done(@ajax_fetch_refs_success, after_fetch_refs)
+      .fail(@ajax_error, cb.fail)
+      .done(@ajax_fetch_refs_success, cb.success)
 
   ajax_open_success: (json)=>
     throw "already opened" if @path
-    @path = "#{repo_root}/#{json.id}"
+    @path = "#{url_root}/#{json.id}"
     @cb.open_success?()
 
   ajax_fetch_commits_success: (json)=>
@@ -73,59 +70,110 @@ class GitoeRepo
         @commits_by_sha1[ sha1 ] = content
         new_commits.sha1.push( sha1 )
         new_commits.content.push( content )
-    @new_commit(new_commits)
+    @cb.new_commit?( new_commits )
 
-  ajax_fetch_refs_success: (json)=>
-    @new_reflog json
+  ajax_fetch_refs_success: (response)=>
+    @cb.new_reflog?( response.status.refs )
 
   ajax_error: (jqXHR)=>
     flash JSON.parse(jqXHR.responseText).error_message
-
-  new_commit: (commits)=>
-    @cb.new_commit?( commits )
-
-  new_reflog: (reflogs)=>
-    @cb.new_reflog?( reflogs )
 
 class GitoeCanvas
   constructor: ( id_canvas, @cb )->
     @canvas = $("##{id_canvas}") or throw "##{id_control} not found"
 
 class GitoeController
-
-  constructor: (selectors)->
+  constructor: (@selectors)->
     @init_repo()
+    @init_control(selectors)
     #@init_vis(selectors)
-    @init_control_repo(selectors.repo)
+    @init_control_repo(selectors)
 
   init_repo: ()->
-    @repo = new GitoeRepo()
+    @repo = new GitoeRepo {
+      ajax_error    : (arg...)->
+        log 'ajax_error',arg...
+      new_commit    : (arg...)->
+        log 'new_commit',arg...
+      new_reflog    : (arg...)->
+        log 'new_reflog',arg...
+    }
+
+  init_control: ()=>
+    for to_hide in [
+      'repo_status'
+      'refs'
+      'history'
+    ]
+      $(@selectors[to_hide].root)
+        .hide()
 
   init_vis:(id_canvas)->
     @vis = new GitoeCanvas( id_canvas , {} )
 
-  init_control_repo: (selector)->
-    control_repo = $(selector)
-    unless control_repo.length > 0
-      throw "'#{selector}' not found"
-    find = (s)-> control_repo.find(s)
-    find('#button-open-repo').on 'click',->
-      flash "opening #{find('#input-repo-path').val()}"
+  init_control_repo: ()->
+    # binding
+    repo = @repo
+    s = @selectors.repo_open
+    s_all = @selectors
+    update = @update_control_repo_status
 
-  open_repo: ()=>
-    path = @control.input_repo_path.val()
-    @repo.open(path, @open_repo_success)
+    $(s.button_open).on 'click',->
+      repo_path = $(s.input_repo_path).val()
+      flash "opening #{repo_path}",false
+      repo.open repo_path, {
+        success: (response)-> # fetch commits
+          update 'path', response.path
+          repo.fetch_commits {
+            success: ()-> # fetch refs
+              repo.fetch_refs {
+                success: (response)->
+                  update 'commits', response.status.commits
+                  update 'branches', \
+                    Object.keys(response.status.refs).length
+                  flash "successfully loaded #{repo_path}",1000
+                  $(s.root).hide()
+                  for other in [
+                    'repo_status'
+                    'refs'
+                    'history'
+                  ]
+                    $(s_all[other].root)
+                      .slideDown()
+              }
+            }
+      }
 
-  open_repo_success: (response)=>
-    log response
-    flash "opened repository #{response.path}"
-
-@gitoe =
-  Repo: GitoeRepo
+  update_control_repo_status: (key,value)=>
+    unless key in [
+      'path'
+      'commits'
+      'branches'
+    ]
+      throw "illigal key '#{key}'"
+    $(@selectors.repo_status[key]).text(value)
 
 $ ->
   ids = {
-    repo: '#control-repo'
+    repo_open:   {
+      root           : '#control-repo_open'
+      button_open    : '#button-open-repo'
+      input_repo_path: '#input-repo-path'
+    }
+    repo_status: {
+      root: '#control-repo_status'
+      path: '#control-repo_status .path'
+      commits: '#control-repo_status .commits'
+      branches: '#control-repo_status .branches'
+    }
+    refs: {
+      root: '#control-refs'
+    }
+    history: {
+      root: '#control-history'
+    }
   }
   c = new GitoeController( ids )
-  #flash 'hello'
+
+  # TODO remove this in normal version
+  $("#button-open-repo").click()
