@@ -38,27 +38,33 @@ module Gitoe::Repo
   end
 
   module Cache
-    # methods:
+    # public methods:
     #   #status()
     #   #commits(range)
 
     def initialize *args
       super(*args)
-      @cached_commits = {}
+      init_cache
       refresh_cache
     end
 
     def status
       {
         :refs     => refs         , # this refreshes cache
-        :commits  => commits.size ,
+        :commits  => size_of_cache, # num
         :path     => path         ,
       }
     end
 
     def commits query_string=nil
-      # TODO support for range query
-      @cached_commits
+      # return { order: content }
+      # order(parent_commit) < order(child_commit)
+      if query_string and query_string.size>0
+        range = Range.new( * query_string.split('..').map(&:to_i) )
+        cached_commits range
+      else
+        cached_commits
+      end
     end
 
     def ref name
@@ -114,16 +120,40 @@ module Gitoe::Repo
 
     def add_to_cache sha1, content
       raise "#{sha1} already in cache" if in_cache? sha1
+      new_id = size_of_cache
       @cached_commits[sha1] = content
+      @cached_commits[new_id] = content
+    end
+
+    def init_cache
+      @cached_commits = {} # { sha1:content, order:content }
+    end
+
+    def size_of_cache
+      Integer( @cached_commits.size / 2 )
     end
 
     def from_cache sha1
       @cached_commits[sha1] or raise "not in cache"
     end
 
-    def in_cache? sha1
-      @cached_commits.has_key? sha1
+    def in_cache? key
+      case key
+      when String, Fixnum
+        @cached_commits.has_key? key
+      else
+        raise "String or Fixnum expected"
+      end
     end
 
+    def cached_commits range=nil
+      case range
+      when Range
+        @cached_commits.select{|key| range.include? key }
+      else
+        #@cached_commits.select{|key| key.is_a? Fixnum }
+        @cached_commits.select{|key| true}
+      end
+    end
   end
 end
