@@ -1,5 +1,5 @@
-$ = jQuery
-F = fabric
+$ = jQuery or throw "demand jQuery"
+fabric or throw "demand fabric.js"
 
 log = (args...)->
   console.log(args...)
@@ -24,8 +24,8 @@ class GitoeRepo
   constructor: (@cb={})->
     # @cb: triggered unconditionally
     #   ajax_error    :(jqXHR)->
-    #   new_commit    :(commit)->
-    #   new_reflog    :(reflogs)->
+    #   new_commits   :(commit)->
+    #   new_reflogs   :(reflogs)->
     #   status        :(string)->
     # TODO change to support ordered cache
     @commits_by_sha1 = {}
@@ -70,33 +70,43 @@ class GitoeRepo
         @commits_by_sha1[ sha1 ] = content
         new_commits.sha1.push( sha1 )
         new_commits.content.push( content )
-    @cb.new_commit?( new_commits )
+    @cb.new_commits?( new_commits )
 
   ajax_fetch_refs_success: (response)=>
-    @cb.new_reflog?( response.status.refs )
+    @cb.new_reflogs?( response.status.refs )
 
   ajax_error: (jqXHR)=>
     flash JSON.parse(jqXHR.responseText).error_message
 
 class GitoeCanvas
   constructor: ( id_canvas, @cb )->
-    @canvas = $("##{id_canvas}") or throw "##{id_control} not found"
+    @fab = new fabric.Canvas( id_canvas )
+    @commits = {}  # { sha1 : {row,col} }
+  #TODO
+  add_commits: (commits)=>
+    log commits
 
 class GitoeController
   constructor: (@selectors)->
+    @init_canvas()
     @init_repo()
-    @init_control(selectors)
-    #@init_vis(selectors)
-    @init_control_repo(selectors)
+    @init_control()
+    @init_control_repo()
+
+  init_canvas:()->
+    id_canvas = $(@selectors.canvas).attr("id")
+    id_canvas or throw "canvas not found"
+    @canvas = new GitoeCanvas id_canvas, { }
 
   init_repo: ()->
+    canvas = @canvas
     @repo = new GitoeRepo {
       ajax_error    : (arg...)->
-        log 'ajax_error',arg...
-      new_commit    : (arg...)->
-        log 'new_commit',arg...
-      new_reflog    : (arg...)->
-        log 'new_reflog',arg...
+        log 'ajax_error',arg... # TODO actual error handling
+      new_commits   : (commits)->
+        canvas.add_commits commits
+      new_reflogs   : (arg...)->
+        log 'new_reflogs:',arg...
     }
 
   init_control: ()=>
@@ -107,9 +117,6 @@ class GitoeController
     ]
       $(@selectors[to_hide].root)
         .hide()
-
-  init_vis:(id_canvas)->
-    @vis = new GitoeCanvas( id_canvas , {} )
 
   init_control_repo: ()->
     # binding
@@ -172,6 +179,7 @@ $ ->
     history: {
       root: '#control-history'
     }
+    canvas:  "#graph"
   }
   c = new GitoeController( ids )
 
