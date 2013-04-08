@@ -151,8 +151,7 @@ module Gitoe::Repo
       when Range
         @cached_commits.select{|key| range.include? key }
       else
-        #@cached_commits.select{|key| key.is_a? Fixnum }
-        @cached_commits.select{|key| true}
+        @cached_commits.select{|key| key.is_a? Fixnum }
       end
     end
   end
