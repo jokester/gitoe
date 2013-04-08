@@ -18,7 +18,6 @@ flash = do->
     flash_div.text(text)
     setTimeout(clear, delay) if delay
 
-
 url_root = "/repo"
 class GitoeRepo
   constructor: (@cb={})->
@@ -28,7 +27,7 @@ class GitoeRepo
     #   new_reflogs   :(reflogs)->
     #   status        :(string)->
     # TODO change to support ordered cache
-    @commits_by_sha1 = {}
+    @commits = {}
 
   open: (path,cb)=>
     # cb:
@@ -62,14 +61,11 @@ class GitoeRepo
     @cb.open_success?()
 
   ajax_fetch_commits_success: (json)=>
-    new_commits =
-      sha1: []
-      content: []
-    for sha1,content of json.commits
-      if not @commits_by_sha1[ sha1 ]
-        @commits_by_sha1[ sha1 ] = content
-        new_commits.sha1.push( sha1 )
-        new_commits.content.push( content )
+    new_commits = {}
+    for commit_no,content of json.commits
+      if not @commits[ commit_no ]
+        new_commits[ commit_no ] = content
+        @commits[ commit_no ] = true
     @cb.new_commits?( new_commits )
 
   ajax_fetch_refs_success: (response)=>
@@ -80,11 +76,79 @@ class GitoeRepo
 
 class GitoeCanvas
   constructor: ( id_canvas, @cb )->
-    @fab = new fabric.Canvas( id_canvas )
-    @commits = {}  # { sha1 : {row,col} }
-  #TODO
+    @fab = new fabric.Canvas id_canvas
+    # TODO find a way, to make @fab not *interactive*
+    @fab.setHeight 600
+    @fab.setWidth 900
+    @commits = {}   # { sha1 : content }
+
+    # topo
+    @children = {}  # { sha1 : [ children ] }
+
+    # layout
+    @layer    = {}  # { sha1 : layer }
+    @position = {}  # { sha1 : position }
+    @grid     = {}  # { layer: { sha1: position } }
+
   add_commits: (commits)=>
-    log commits
+    # sort commits by commit_no, and add them
+    commit_nos =
+      Object.keys(commits)
+      .map( (str)-> parseInt str )
+      .sort( (a,b)-> a-b )
+    for commit_no in commit_nos
+      commit = commits[commit_no]
+      @add_commit commit
+      @place commit
+      @draw commit.sha1
+
+  draw: (sha1)->
+    layer = @layer[sha1]
+    pos   = @position[sha1]
+    rect = new fabric.Rect {
+      width: 5
+      height: 5
+      left: 20*layer
+      top: 20*pos
+      angle: 45
+      fill: "blue"
+    }
+    @fab.add rect
+
+  add_commit: (commit)->
+    throw "already added" if @commits[commit.sha1]
+    @commits[commit.sha1] = commit
+    @children[commit.sha1] = []
+    for parent in commit.parents
+      @children[parent].push commit
+    @place(commit)
+
+  place: (commit)->
+    layer_no = @layer[commit.sha1] \
+      = @layer_no commit
+    @grid[layer_no] ?= {}
+    @position[commit.sha1] = @grid[layer_no][commit.sha1] \
+      = @position_of(commit, layer_no)
+
+  layer_no: (commit)->
+    # layer = 1 + max[ parent.layer ]
+    layer_no = 0
+    for parent in commit.parents
+      parent_layer = @layer[parent]
+      unless isFinite(parent_layer)
+        throw "illegal layer for parent"
+      if parent_layer >= layer_no
+        layer_no = parent_layer + 1
+    layer_no
+  position_of: (commit,layer_no)->
+  # TODO a more proper placement, for
+  #   - less crossing
+  #   - better looking
+  #   want: referencing to position of parents
+    existing_commits = Object.keys( @grid[layer_no] )
+    existing_commits.length
+
+
 
 class GitoeController
   constructor: (@selectors)->
@@ -103,10 +167,9 @@ class GitoeController
     @repo = new GitoeRepo {
       ajax_error    : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
-      new_commits   : (commits)->
-        canvas.add_commits commits
+      new_commits   : canvas.add_commits
       new_reflogs   : (arg...)->
-        log 'new_reflogs:',arg...
+        log 'TODO hand these new_reflogs:',arg...
     }
 
   init_control: ()=>
