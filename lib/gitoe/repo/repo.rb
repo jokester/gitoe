@@ -86,29 +86,35 @@ module Gitoe::Repo
       # if in_cache?
       #   just take from cache
       # else
-      #   add to cache, after adding all its ancestors to cache
+      #   add sha1 and all its ancestors to cache, in topological order
       if in_cache? sha1
         return from_cache sha1
       end
-      this = super
+      this = super.freeze
       queried = { this[:sha1] => this }
       # Hash became ordered in ruby1.9
       # ref: http://www.igvita.com/2009/02/04/ruby-19-internals-ordered-hash/
       not_cached_commits = this[:parents].dup
       while not_cached_commits.size > 0
-        # traverse DAG to get ancestors, closest ancestors first
+        # traverse (reversed) DAG to get ancestors
+        # not in topological order yet
         ancestor_sha1 = not_cached_commits.shift
         next if queried.has_key? ancestor_sha1
         next if in_cache? ancestor_sha1
-        ancestor = super(ancestor_sha1)
+        ancestor = super(ancestor_sha1).freeze
         queried[ ancestor_sha1 ] = ancestor
         ancestor[:parents].each do |grand_sha1|
           not_cached_commits.push grand_sha1
         end
       end
       # add to cache
-      queried.keys.reverse.each do |commit_sha1|
-        add_to_cache(commit_sha1 , queried[commit_sha1])
+      while queried.size > 0
+        sha1, content = queried.shift
+        if content[:parents].all? {|s| in_cache? s }
+          add_to_cache sha1, content
+        else
+          queried[sha1] = content # put it back
+        end
       end
       this
     end
