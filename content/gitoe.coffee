@@ -75,11 +75,20 @@ class GitoeRepo
     flash JSON.parse(jqXHR.responseText).error_message
 
 class GitoeCanvas
+  @constant  : {
+    inner_width : 4
+    inner_height: 10
+    outer_width : 9
+    outer_height: 20
+  }
   constructor: ( id_canvas, @cb )->
-    @fab = new fabric.Canvas id_canvas
-    # TODO find a way, to make @fab not *interactive*
+    @fab = new fabric.Canvas id_canvas, {
+      # TODO find a way, to make @fab not *interactive*
+      a: 1
+    }
     @fab.setHeight 600
     @fab.setWidth 900
+    @constant = GitoeCanvas.constant
     @commits = {}   # { sha1 : content }
 
     # topo
@@ -90,38 +99,35 @@ class GitoeCanvas
     @position = {}  # { sha1 : position }
     @grid     = {}  # { layer: { sha1: position } }
 
-  add_commits: (commits)=>
-    # sort commits by commit_no, and add them
-    commit_nos =
-      Object.keys(commits)
-      .map( (str)-> parseInt str )
-      .sort( (a,b)-> a-b )
-    for commit_no in commit_nos
-      commit = commits[commit_no]
-      @add_commit commit
-      @place commit
-      @draw commit.sha1
-
-  draw: (sha1)->
-    layer = @layer[sha1]
-    pos   = @position[sha1]
-    rect = new fabric.Rect {
-      width: 5
-      height: 5
-      left: 20*layer
-      top: 20*pos
-      angle: 45
-      fill: "blue"
-    }
-    @fab.add rect
-
   add_commit: (commit)->
-    throw "already added" if @commits[commit.sha1]
+    throw "already added <#{commit.sha1}>" if @commits[commit.sha1]
     @commits[commit.sha1] = commit
     @children[commit.sha1] = []
     for parent in commit.parents
       @children[parent].push commit
     @place(commit)
+
+  draw_group: (sha1)->
+    layer = @layer[sha1]
+    pos   = @position[sha1]
+    #log { layer: layer, pos: pos}
+    group = new fabric.Group [], {
+      left : (1+layer) * @constant.outer_width
+      top  : pos   * @constant.outer_height
+    }
+    inner = @draw_commit(sha1)
+    group.add(inner)
+    @fab.add(group)
+
+    @fab.add group
+  draw_commit: (sha1)->
+    rect = new fabric.Rect {
+      width:  @constant.inner_width
+      height: @constant.inner_height
+      right: 0
+      top : 0
+      fill: "blue"
+    }
 
   place: (commit)->
     layer_no = @layer[commit.sha1] \
@@ -167,7 +173,19 @@ class GitoeController
     @repo = new GitoeRepo {
       ajax_error    : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
-      new_commits   : canvas.add_commits
+      new_commits   : (commits)->
+        commit_nos =
+          Object.keys(commits)
+          .map( (str)-> parseInt str )
+          .sort( (a,b)-> a-b )
+        for commit_no in commit_nos
+          commit = commits[commit_no]
+          du = do (commit,commit_no)->()->
+            @add_commit commit
+            @place      commit
+            @draw_group commit.sha1
+            flash "drawing commit #{commit_no}/#{commit_nos.length}",1
+          setTimeout(du.bind(canvas),0)
       new_reflogs   : (arg...)->
         log 'TODO hand these new_reflogs:',arg...
     }
