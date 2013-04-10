@@ -114,6 +114,7 @@ $ ->
     }
     canvas:  "#graph"
   }
+
   c = new GitoeController( ids )
 
   $("#button-open-repo").click() # TODO remove this in normal version
