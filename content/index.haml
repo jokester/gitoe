@@ -7,6 +7,8 @@
     %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
     %script(src="http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.1.0/fabric.all.min.js")
     %script(src="/bootstrap/js/bootstrap.min.js")
+    %script(src="gitoe-repo.js")
+    %script(src="gitoe-draw.js")
     %script(src="gitoe.js")
     %title gitoe
   %body
@@ -20,6 +22,7 @@
           #control-repo_open
             %legend open repository
             %form.form-inline
+              / TODO empty here
               %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/config")
               %a.btn#button-open-repo
                 %i.icon-folder-open

@@ -1,5 +1,4 @@
 $ = jQuery or throw "demand jQuery"
-fabric or throw "demand fabric.js"
 
 log = (args...)->
   console.log(args...)
@@ -18,137 +17,8 @@ flash = do->
     flash_div.text(text)
     setTimeout(clear, delay) if delay
 
-url_root = "/repo"
-class GitoeRepo
-  constructor: (@cb={})->
-    # @cb: triggered unconditionally
-    #   ajax_error    :(jqXHR)->
-    #   new_commits   :(commit)->
-    #   new_reflogs   :(reflogs)->
-    #   status        :(string)->
-    # TODO change to support ordered cache
-    @commits = {}
-
-  open: (path,cb)=>
-    # cb:
-    #   success: ()->
-    #   fail   : ()->
-    $.post("#{url_root}/new",{path: path})
-      .fail(@ajax_error, cb.fail)
-      .done(@ajax_open_success, cb.success)
-
-  fetch_commits: (cb)->
-    # cb:
-    #   success: ()->
-    #   fail   : ()->
-    throw "not opened" unless @path
-    # TODO only fetch new commits
-    $.get("#{@path}/commits")
-      .fail(@ajax_error, cb.fail)
-      .done(@ajax_fetch_commits_success, cb.success)
-
-  fetch_refs: (cb)->
-    # cb:
-    #   success: ()->
-    #   fail   : ()->
-    $.get("#{@path}/")
-      .fail(@ajax_error, cb.fail)
-      .done(@ajax_fetch_refs_success, cb.success)
-
-  ajax_open_success: (json)=>
-    throw "already opened" if @path
-    @path = "#{url_root}/#{json.id}"
-    @cb.open_success?()
-
-  ajax_fetch_commits_success: (json)=>
-    new_commits = {}
-    for commit_no,content of json.commits
-      if not @commits[ commit_no ]
-        new_commits[ commit_no ] = content
-        @commits[ commit_no ] = true
-    @cb.new_commits?( new_commits )
-
-  ajax_fetch_refs_success: (response)=>
-    @cb.new_reflogs?( response.status.refs )
-
-  ajax_error: (jqXHR)=>
-    flash JSON.parse(jqXHR.responseText).error_message
-
-class GitoeCanvas
-  constructor: ( id_canvas, @cb )->
-    @fab = new fabric.Canvas id_canvas
-    # TODO find a way, to make @fab not *interactive*
-    @fab.setHeight 600
-    @fab.setWidth 900
-    @commits = {}   # { sha1 : content }
-
-    # topo
-    @children = {}  # { sha1 : [ children ] }
-
-    # layout
-    @layer    = {}  # { sha1 : layer }
-    @position = {}  # { sha1 : position }
-    @grid     = {}  # { layer: { sha1: position } }
-
-  add_commits: (commits)=>
-    # sort commits by commit_no, and add them
-    commit_nos =
-      Object.keys(commits)
-      .map( (str)-> parseInt str )
-      .sort( (a,b)-> a-b )
-    for commit_no in commit_nos
-      commit = commits[commit_no]
-      @add_commit commit
-      @place commit
-      @draw commit.sha1
-
-  draw: (sha1)->
-    layer = @layer[sha1]
-    pos   = @position[sha1]
-    rect = new fabric.Rect {
-      width: 5
-      height: 5
-      left: 20*layer
-      top: 20*pos
-      angle: 45
-      fill: "blue"
-    }
-    @fab.add rect
-
-  add_commit: (commit)->
-    throw "already added" if @commits[commit.sha1]
-    @commits[commit.sha1] = commit
-    @children[commit.sha1] = []
-    for parent in commit.parents
-      @children[parent].push commit
-    @place(commit)
-
-  place: (commit)->
-    layer_no = @layer[commit.sha1] \
-      = @layer_no commit
-    @grid[layer_no] ?= {}
-    @position[commit.sha1] = @grid[layer_no][commit.sha1] \
-      = @position_of(commit, layer_no)
-
-  layer_no: (commit)->
-    # layer = 1 + max[ parent.layer ]
-    layer_no = 0
-    for parent in commit.parents
-      parent_layer = @layer[parent]
-      unless isFinite(parent_layer)
-        throw "illegal layer for parent"
-      if parent_layer >= layer_no
-        layer_no = parent_layer + 1
-    layer_no
-  position_of: (commit,layer_no)->
-  # TODO a more proper placement, for
-  #   - less crossing
-  #   - better looking
-  #   want: referencing to position of parents
-    existing_commits = Object.keys( @grid[layer_no] )
-    existing_commits.length
-
-
+GitoeRepo   = @exports.gitoe.GitoeRepo   or throw "GitoeRepo not found"
+GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
 class GitoeController
   constructor: (@selectors)->
@@ -167,9 +37,9 @@ class GitoeController
     @repo = new GitoeRepo {
       ajax_error    : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
-      new_commits   : canvas.add_commits
+      new_commit    : canvas.add_commit_async
       new_reflogs   : (arg...)->
-        log 'TODO hand these new_reflogs:',arg...
+        log 'TODO handle these new_reflogs:',arg...
     }
 
   init_control: ()=>
@@ -195,7 +65,7 @@ class GitoeController
         success: (response)-> # fetch commits
           update 'path', response.path
           repo.fetch_commits {
-            success: ()-> # fetch refs
+            success: ()->     # fetch refs
               repo.fetch_refs {
                 success: (response)->
                   update 'commits', response.status.commits
@@ -244,7 +114,7 @@ $ ->
     }
     canvas:  "#graph"
   }
+
   c = new GitoeController( ids )
 
-  # TODO remove this in normal version
-  $("#button-open-repo").click()
+  $("#button-open-repo").click() # TODO remove this in normal version
