@@ -28,9 +28,10 @@ class GitoeController
     @init_control_repo()
 
   init_canvas:()->
-    id_canvas = $(@selectors.canvas).attr("id")
+    id_canvas = $(@selectors.canvas.canvas).attr("id")
     id_canvas or throw "canvas not found"
-    @canvas = new GitoeCanvas id_canvas, { }
+    div = $(@selectors.canvas.root)
+    @canvas = new GitoeCanvas id_canvas, div, { }
 
   init_repo: ()->
     canvas = @canvas
@@ -112,7 +113,10 @@ $ ->
     history: {
       root: '#control-history'
     }
-    canvas:  "#graph"
+    canvas:  {
+      root:   "#canvas-container"
+      canvas: "#graph"
+    }
   }
 
   c = new GitoeController( ids )

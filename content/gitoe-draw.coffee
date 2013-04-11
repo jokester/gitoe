@@ -58,7 +58,7 @@ class GitoeCanvas
     outer_width : 20
     outer_height: 16
   }
-  constructor: ( id_canvas, @cb )->
+  constructor: ( id_canvas, @div, @cb )->
     @dag = new DAGLayout {
       draw_node: @draw_async
     }
@@ -95,6 +95,10 @@ class GitoeCanvas
       @canvas_inc_height()
     group = new fabric.Group [ @draw_commit sha1 ], group_pos
     @canvas.add(group)
+    @div.scrollTo {
+      left: group_pos.left - 200
+      top: group_pos.top - @constant.canvas_height/2
+    }
 
   draw_commit: (sha1)->
     rect = new fabric.Rect {
