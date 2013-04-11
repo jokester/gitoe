@@ -29,10 +29,7 @@ module Gitoe::Repo
       #$stderr.write "actually looked up sha1=#{sha1}\n"
       commit_obj = @rugged.lookup(sha1)
       raise "not a commit" unless commit_obj.is_a? Commit
-      {
-        :sha1    => commit_obj.oid,
-        :parents => commit_obj.parents.map(&:oid),
-      }.freeze
+      commit_to_hash commit_obj
     end
 
     def refs
@@ -51,6 +48,15 @@ module Gitoe::Repo
         :type   => resolved.type     ,
         :log    => reflog( resolved ),
       }
+    end
+
+    def walk sha1, &block
+      walker = Walker.new @rugged
+      walker.push sha1
+      walker.each do |commit_obj|
+        to_hide = yield(commit_to_hash commit_obj) || []
+        to_hide.each { |s| walker.hide s }
+      end
     end
 
     private
@@ -72,6 +78,13 @@ module Gitoe::Repo
       log.each do |change|
         change[:committer][:time] = change[:committer][:time].to_i # seconds from epoch
       end
+    end
+
+    def commit_to_hash commit_obj
+      {
+        :sha1    => commit_obj.oid,
+        :parents => commit_obj.parents.map(&:oid),
+      }.freeze
     end
 
   end
