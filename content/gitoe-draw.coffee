@@ -27,6 +27,8 @@ class DAGLayout
         throw "<#{id}> added before its parent <#{parent}>"
       else
         cs.push id
+    if @parents[id]
+      throw "<#{id}> added more than once"
     @parents[id]  = parents
     @children[id] = []
     layer = @layer_of(id)
@@ -47,24 +49,40 @@ class DAGLayout
     existing_commits = Object.keys( @grid[layer] )
     pos = existing_commits.length
     @grid[layer][id] = pos
+    @position[id] = pos
 
+  query_parents: (id)=>
+    @parents[id]
+  query_pos: (id)=>{
+    layer  : @layer[id]
+    pos    : @position[id]
+  }
 
 class GitoeCanvas
   @CONST  : {
     canvas_width : 2000
     canvas_height: 1200
-    inner_width : 12
-    inner_height: 10
-    outer_width : 20
-    outer_height: 16
-  }
-  constructor: ( id_canvas, @div, @cb )->
-    @dag = new DAGLayout {
-      draw_node: @draw_async
+    padding_left: 60
+    padding_top : 60
+    inner_width : 60
+    inner_height: 20
+    outer_width : 80
+    outer_height: 60
+    text_style: {
+      fontFamily: 'mono'
+      fontSize: 11
     }
+    commit_handle: 5
+    path_style: {
+      fill: 'pink'
+      strokeWidth: 3
+    }
+  }
+
+  constructor: ( id_canvas, @div, @cb )->
+    @dag = new DAGLayout(draw_node: @draw_async)
     @constant = GitoeCanvas.CONST
     @init_canvas(id_canvas)
-    @commits = {}   # { sha1 : content }
     @objs = {}      # { sha1 : fabric objs }
 
   add_commit_async: (commit)=>
@@ -78,49 +96,82 @@ class GitoeCanvas
   # ref_on_commit: (ref)
   # ref_on_ref:    (ref1, ref2)
   add_commit: (commit)->
-    if @commits[commit.sha1]
-      throw "already added <#{commit.sha1}>"
-    else
-      @commits[commit.sha1] = true # TODO contents
-      @dag.add_node( commit.sha1, commit.parents )
+    @dag.add_node( commit.sha1, commit.parents )
 
   draw: (sha1,layer,pos)->
+    if @objs[sha1]
+      @destroy sha1
+    objs = @objs[sha1] = []
+    parents = @dag.query_parents(sha1).map( @dag.query_pos )
+    group = @draw_group(sha1,layer,pos)
+    commit = @draw_commit(sha1)
+    paths = @draw_paths(layer,pos,parents)
+
+    for from in [commit,paths]
+      for obj in from
+        objs.push obj
+        group.add obj
+
+    objs.push   group
+    @canvas.add group
+
+  draw_group: (sha1,layer,pos)->
     group_pos = {
-      left : (1+layer) * @constant.outer_width
-      top  : (1+pos )  * @constant.outer_height
+      left : @constant.padding_left + layer * @constant.outer_width
+      top  : @constant.padding_top + pos * @constant.outer_height
     }
-    if group_pos.left > @canvas.getWidth()
-      @canvas_inc_width()
-    if group_pos.top > @canvas.getHeight()
-      @canvas_inc_height()
-    group = new fabric.Group [ @draw_commit sha1 ], group_pos
-    @canvas.add(group)
-    @div.scrollTo {
-      left: group_pos.left - 200
-      top: group_pos.top - @constant.canvas_height/2
-    }
+    group = new fabric.Group([], group_pos)
 
   draw_commit: (sha1)->
     rect = new fabric.Rect {
       width:  @constant.inner_width
       height: @constant.inner_height
-      right: 0
-      top : 0
-      fill: "blue"
+      fill: "transparent"
+      strokeWidth: 1
+      stroke: 'blue'
     }
+    text = new fabric.Text sha1[0..7], @constant.text_style
+    [rect, text]
+
+  draw_paths: (layer,pos,parents_pos)->
+    paths = []
+    for p in parents_pos
+      # the line
+      coord_sets = []
+      coord_sets.push [
+        - @constant.inner_width / 2
+        0
+        - (@constant.inner_width / 2 + @constant.commit_handle)
+        0
+      ] # handle
+      coord_sets.push [
+        - (@constant.inner_width / 2 + @constant.commit_handle)
+        0
+        -(layer - p.layer) * @constant.outer_width + @constant.inner_width/2
+        -(pos - p.pos) * @constant.outer_height
+      ] # the path
+      for coords in coord_sets
+        paths.push(new fabric.Line coords, @constant.path_style)
+    paths
+
+  destroy: (sha1)->
+    # TODO remove sha1's related fabric objects
 
   init_canvas: (id_canvas)->
-    @canvas = new fabric.Canvas id_canvas, {
+    canvas = new fabric.Canvas id_canvas, {
       interactive: false
       selection: false
     }
-    @canvas.setHeight @constant.canvas_height
-    @canvas.setWidth  @constant.canvas_width
+    canvas.on 'mouse:down', (options,target)->
+      console.log canvas.getPointer(options.e)
+    canvas.setHeight @constant.canvas_height
+    canvas.setWidth  @constant.canvas_width
+    @canvas = canvas
 
-  canvas_inc_width: ()=>
-    @canvas.setWidth  @canvas.getWidth() *(5/4)
-  canvas_inc_height: ()=>
-    @canvas.setHeight @canvas.getHeight()*(5/4)
+  canvas_inc_width: ()->
+    @canvas.setWidth  @canvas.getWidth() * 2
+  canvas_inc_height: ()->
+    @canvas.setHeight @canvas.getHeight() * 2
   freeze: (fabric_obj)->
     attrs = [
       'lockMovementX'
