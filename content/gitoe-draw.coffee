@@ -122,8 +122,8 @@ class GitoeCanvas
 
   draw_group: (sha1,layer,pos)->
     group_pos = {
-      left : @constant.padding_left + layer * @constant.outer_width
-      top  : @constant.padding_top + pos * @constant.outer_height
+      left : @constant.padding_left + pos * @constant.outer_width
+      top  : @constant.padding_top  + layer * @constant.outer_height
     }
     if group_pos.left > @canvas_width
       @canvas_inc_width()
@@ -149,16 +149,16 @@ class GitoeCanvas
       # the line
       coord_sets = []
       coord_sets.push [
-        - @constant.inner_width / 2
         0
-        - (@constant.inner_width / 2 + @constant.commit_handle)
+        -  @constant.box_style.height / 2
         0
+        - (@constant.box_style.height / 2 + @constant.commit_handle )
       ] # handle
       coord_sets.push [
-        - (@constant.inner_width / 2 + @constant.commit_handle)
         0
-        -(layer - p.layer) * @constant.outer_width + @constant.inner_width/2
-        -(pos - p.pos) * @constant.outer_height
+        - (@constant.box_style.height / 2 + @constant.commit_handle )
+        -(pos - p.pos) * @constant.outer_width
+        -(layer - p.layer) * @constant.outer_height + @constant.box_style.height/2
       ] # the path
       for coords in coord_sets
         paths.push(new fabric.Line coords, @constant.path_style)
