@@ -97,7 +97,6 @@ class GitoeCanvas
     setTimeout( @draw.bind(@,sha1,layer,pos),0 )
 
   # TODO
-  # focus: (sha1)->
   # ref_on_commit: (ref)
   # ref_on_ref:    (ref1, ref2)
   add_commit: (commit)->
@@ -132,10 +131,7 @@ class GitoeCanvas
       @canvas_inc_height()
       scroll = true
     if scroll
-      @div.scrollTo {
-        left: group_pos.left - 200
-        top: group_pos.top - 200
-      }
+      @focus( layer, pos )
     group = new fabric.Group([], group_pos)
 
   draw_commit: (sha1)->
@@ -164,6 +160,12 @@ class GitoeCanvas
         paths.push(new fabric.Line coords, @constant.path_style)
     paths
 
+  focus: (layer,pos)->
+    @div.scrollTo {
+      left : -200 + @constant.padding_left + pos * @constant.outer_width
+      top  : -200 + @constant.padding_top  + layer * @constant.outer_height
+    }
+
   destroy: (sha1)->
     # TODO remove sha1's related fabric objects
 
@@ -181,11 +183,12 @@ class GitoeCanvas
     @canvas = canvas
 
   canvas_inc_width: ()->
-    console.log 'inc width'
-    @canvas.setWidth  @canvas_width *= 1.2
+    @canvas_width *= 1.2
+    @canvas.setWidth @canvas_width
   canvas_inc_height: ()->
-    console.log 'inc height'
-    @canvas.setHeight @canvas_height *= 1.2
+    @canvas_height *= 1.2
+    @canvas.setHeight @canvas_height
+
   freeze: (fabric_obj)->
     attrs = [
       'lockMovementX'
