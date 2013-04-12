@@ -63,16 +63,21 @@ class GitoeCanvas
     canvas_width : 2000
     canvas_height: 1200
     padding_left: 60
-    padding_top : 60
-    inner_width : 60
-    inner_height: 20
+    padding_top : 40
     outer_width : 80
     outer_height: 60
+    commit_handle: 10
+    box_style: {
+      width:  60
+      height: 20
+      fill: "transparent"
+      strokeWidth: 1
+      stroke: 'blue'
+    }
     text_style: {
       fontFamily: 'mono'
       fontSize: 11
     }
-    commit_handle: 5
     path_style: {
       fill: 'pink'
       strokeWidth: 3
@@ -120,16 +125,21 @@ class GitoeCanvas
       left : @constant.padding_left + layer * @constant.outer_width
       top  : @constant.padding_top + pos * @constant.outer_height
     }
+    if group_pos.left > @canvas_width
+      @canvas_inc_width()
+      scroll = true
+    if group_pos.top > @canvas_height
+      @canvas_inc_height()
+      scroll = true
+    if scroll
+      @div.scrollTo {
+        left: group_pos.left - 200
+        top: group_pos.top - 200
+      }
     group = new fabric.Group([], group_pos)
 
   draw_commit: (sha1)->
-    rect = new fabric.Rect {
-      width:  @constant.inner_width
-      height: @constant.inner_height
-      fill: "transparent"
-      strokeWidth: 1
-      stroke: 'blue'
-    }
+    rect = new fabric.Rect @constant.box_style
     text = new fabric.Text sha1[0..7], @constant.text_style
     [rect, text]
 
@@ -164,14 +174,18 @@ class GitoeCanvas
     }
     canvas.on 'mouse:down', (options,target)->
       console.log canvas.getPointer(options.e)
-    canvas.setHeight @constant.canvas_height
-    canvas.setWidth  @constant.canvas_width
+    @canvas_height = @constant.canvas_height
+    @canvas_width  = @constant.canvas_width
+    canvas.setHeight @canvas_height
+    canvas.setWidth  @canvas_width
     @canvas = canvas
 
   canvas_inc_width: ()->
-    @canvas.setWidth  @canvas.getWidth() * 2
+    console.log 'inc width'
+    @canvas.setWidth  @canvas_width *= 1.2
   canvas_inc_height: ()->
-    @canvas.setHeight @canvas.getHeight() * 2
+    console.log 'inc height'
+    @canvas.setHeight @canvas_height *= 1.2
   freeze: (fabric_obj)->
     attrs = [
       'lockMovementX'
@@ -184,8 +198,6 @@ class GitoeCanvas
     for attr in attrs
       fabric_obj[attr] = true
     fabric_obj
-
-
 
 @exports ?= { gitoe: {} }
 exports.gitoe.GitoeCanvas = GitoeCanvas
