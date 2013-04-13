@@ -68,18 +68,25 @@ module Gitoe::Repo
     end
 
     def ref name
-      # update cache in superclass#refs
-      ret = super
-      ret[:log].each do |log|
-        commit log[:oid_new]
+      follow_ref super
+    end
+
+    def follow_ref ref_hash
+      case ref_hash[:type]
+      when "commit"
+        commit ref_hash[:target]
+      when "tree"
+      else raise ref_hash[:type]
+      end
+
+      ref_hash[:log].each do |log|
         [ :oid_old, :oid_new ].each do|key|
           sha1 = log[key]
-          next if in_cache? sha1
-          next if sha1=="0000000000000000000000000000000000000000"
+          next if sha1 == "0000000000000000000000000000000000000000"
           commit sha1
         end
       end
-      ret
+      ref_hash
     end
 
     def commit sha1
@@ -160,7 +167,7 @@ module Gitoe::Repo
       when String, Fixnum
         @cached_commits.has_key? key
       else
-        raise "String or Fixnum expected"
+        raise "String or Fixnum expected, got #{key}"
       end
     end
 

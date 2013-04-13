@@ -26,10 +26,16 @@ module Gitoe::Repo
     end
 
     def commit sha1
-      #$stderr.write "actually looked up sha1=#{sha1}\n"
-      commit_obj = @rugged.lookup(sha1)
-      raise "not a commit" unless commit_obj.is_a? Commit
-      commit_to_hash commit_obj
+      # $gitoe_log[ "query #{sha1}" ]
+      obj = @rugged.lookup(sha1)
+      case obj
+      when Commit
+        commit_to_hash obj
+      when Tag
+        tag_to_hash obj
+      else
+        raise "#{obj} is not commit"
+      end
     end
 
     def refs
@@ -47,7 +53,7 @@ module Gitoe::Repo
         :target => resolved.target   ,
         :type   => resolved.type     ,
         :log    => reflog( resolved ),
-      }
+      }.freeze
     end
 
     private
@@ -75,9 +81,20 @@ module Gitoe::Repo
       {
         :sha1    => commit_obj.oid,
         :parents => commit_obj.parents.map(&:oid),
+        :type    => :commit
+        # :author  => commit_obj.author,
+        # :committer => commit_obj.committer
       }.freeze
     end
 
+    def tag_to_hash tag_obj
+      {
+        :sha1    => tag_obj.oid,
+        :parents => [tag_obj.target.oid],
+        :type    => :annotated_tag
+        # :tagger  => tag_obj.tagger
+      }.freeze
+    end
   end
 
   class Rugged_with_cache < Rugged_backend
