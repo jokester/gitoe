@@ -1,5 +1,8 @@
 $ = jQuery or throw "demand jQuery"
-fabric or throw "demand fabric.js"
+R = Raphael or throw "demand Raphael"
+
+clone = (obj)->
+  $.extend({},obj)
 
 class DAGLayout
   # TODO a more proper placement, for
@@ -60,23 +63,28 @@ class DAGLayout
 
 class GitoeCanvas
   @CONST  : {
-    canvas_width : 2000
-    canvas_height: 1200
+    canvas: {
+      width : 2000
+      height: 1200
+    }
     padding_left: 60
     padding_top : 40
     outer_width : 80
     outer_height: 60
     commit_handle: 10
-    box_style: {
+    box: {
       width:  60
       height: 20
-      fill: "transparent"
-      strokeWidth: 1
-      stroke: 'blue'
+      radius: 2
+      attr: {
+        fill          : "lightblue"
+        "stroke-width": 2
+        stroke        : 'black'
+      }
     }
-    text_style: {
-      fontFamily: 'mono'
-      fontSize: 11
+    text_attr: {
+      'font-family': 'mono'
+      'font-size': 12
     }
     path_style: {
       fill: 'pink'
@@ -86,121 +94,110 @@ class GitoeCanvas
 
   constructor: ( id_canvas, @div, @cb )->
     @dag = new DAGLayout(draw_node: @draw_async)
-    @constant = GitoeCanvas.CONST
+    @constant = clone GitoeCanvas.CONST
     @init_canvas(id_canvas)
-    @objs = {}      # { sha1 : fabric objs }
+    @objs = {}    # { sha1 : canvas objs }
 
   add_commit_async: (commit)=>
     setTimeout( @add_commit.bind( @, commit )  ,0 )
 
   draw_async: (sha1, layer, pos)=>
-    setTimeout( @draw.bind(@,sha1,layer,pos),0 )
+    setTimeout( @draw.bind(@,sha1,layer,pos), 0 )
 
   # TODO
   # ref_on_commit: (ref)
   # ref_on_ref:    (ref1, ref2)
+  # destroy: (sha1)->
+    # remove sha1's canvas objects
+
   add_commit: (commit)->
     @dag.add_node( commit.sha1, commit.parents )
 
   draw: (sha1,layer,pos)->
     if @objs[sha1]
       @destroy sha1
-    objs = @objs[sha1] = []
+    coord = @commit_coord(layer, pos)
     parents = @dag.query_parents(sha1).map( @dag.query_pos )
-    group = @draw_group(sha1,layer,pos)
-    commit = @draw_commit(sha1)
-    paths = @draw_paths(layer,pos,parents)
 
-    for from in [commit,paths]
-      for obj in from
-        objs.push obj
-        group.add obj
-
-    objs.push   group
-    @canvas.add group
-
-  draw_group: (sha1,layer,pos)->
-    group_pos = {
-      left : @constant.padding_left + pos * @constant.outer_width
-      top  : @constant.padding_top  + layer * @constant.outer_height
-    }
-    if group_pos.left > @canvas_width
+    commit_box = @draw_commit_box(coord)
+    text = @draw_commit_text(coord, sha1)
+    paths = @draw_paths(coord, parents)
+    if coord.left > @canvas_size.width
       @canvas_inc_width()
-      scroll = true
-    if group_pos.top > @canvas_height
+      @focus(coord)
+    else if coord.top > @canvas_size.height
       @canvas_inc_height()
-      scroll = true
-    if scroll
-      @focus( layer, pos )
-    group = new fabric.Group([], group_pos)
+      @focus(coord)
+    @objs[sha1] = {
+      commit_box: commit_box
+      text: text
+      paths: paths
+    }
 
-  draw_commit: (sha1)->
-    rect = new fabric.Rect @constant.box_style
-    text = new fabric.Text sha1[0..7], @constant.text_style
-    [rect, text]
+  commit_coord: (layer,pos)->{
+    # left and top coord of cell
+    left: (@constant.padding_left + @constant.outer_width  * pos)
+    top : (@constant.padding_top  + @constant.outer_height * layer)
+  }
 
-  draw_paths: (layer,pos,parents_pos)->
+  draw_commit_box: (coord)->
+    @canvas.rect(
+      coord.left,
+      coord.top,
+      @constant.box.width,
+      @constant.box.height,
+      @constant.box.radius
+    ).attr(@constant.box.attr)
+
+  draw_commit_text: (coord,sha1)->
+    @canvas.text(
+      coord.left + @constant.box.width/2,
+      coord.top  + @constant.box.height/2,
+      sha1[0..6]
+    ).attr(@constant.text_attr)
+
+  draw_paths: (coord, parents_pos)->
     paths = []
+    start = [
+      'M'
+      coord.left + @constant.box.width/2
+      coord.top
+    ].join ' '
     for p in parents_pos
-      # the line
-      coord_sets = []
-      coord_sets.push [
-        0
-        -  @constant.box_style.height / 2
-        0
-        - (@constant.box_style.height / 2 + @constant.commit_handle )
-      ] # handle
-      coord_sets.push [
-        0
-        - (@constant.box_style.height / 2 + @constant.commit_handle )
-        -(pos - p.pos) * @constant.outer_width
-        -(layer - p.layer) * @constant.outer_height + @constant.box_style.height/2
-      ] # the path
-      for coords in coord_sets
-        paths.push(new fabric.Line coords, @constant.path_style)
+      coord_p = @commit_coord(p.layer, p.pos)
+      path_command = start + [
+        'L'
+        coord_p.left + @constant.box.width/2
+        coord_p.top  + @constant.box.height
+      ].join ' '
+      paths.push @canvas.path( path_command )
     paths
 
-  focus: (layer,pos)->
+  focus: (coord)->
     @div.scrollTo {
-      left : -200 + @constant.padding_left + pos * @constant.outer_width
-      top  : -200 + @constant.padding_top  + layer * @constant.outer_height
+      left: coord.left - 500
+      top : coord.top  - 300
     }
-
-  destroy: (sha1)->
-    # TODO remove sha1's related fabric objects
 
   init_canvas: (id_canvas)->
-    canvas = new fabric.Canvas id_canvas, {
-      interactive: false
-      selection: false
-    }
-    canvas.on 'mouse:down', (options,target)->
-      console.log canvas.getPointer(options.e)
-    @canvas_height = @constant.canvas_height
-    @canvas_width  = @constant.canvas_width
-    canvas.setHeight @canvas_height
-    canvas.setWidth  @canvas_width
-    @canvas = canvas
+    @canvas_size = clone @constant.canvas
+    @canvas = R(
+      id_canvas,
+      @canvas_size.width,
+      @canvas_size.height
+    )
 
   canvas_inc_width: ()->
-    @canvas_width *= 1.2
-    @canvas.setWidth @canvas_width
+    @canvas_size.width *= 1.1
+    @canvas_resize()
   canvas_inc_height: ()->
-    @canvas_height *= 1.2
-    @canvas.setHeight @canvas_height
-
-  freeze: (fabric_obj)->
-    attrs = [
-      'lockMovementX'
-      'lockMovementY'
-      'lockScalingX'
-      'lockScalingY'
-      'lockUniScaling'
-      'lockRotation'
-    ]
-    for attr in attrs
-      fabric_obj[attr] = true
-    fabric_obj
+    @canvas_size.height *= 1.1
+    @canvas_resize()
+  canvas_resize: ()->
+    @canvas.setSize(
+      @canvas_size.width,
+      @canvas_size.height,
+    )
 
 @exports ?= { gitoe: {} }
 exports.gitoe.GitoeCanvas = GitoeCanvas
