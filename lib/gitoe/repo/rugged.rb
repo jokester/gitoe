@@ -39,21 +39,30 @@ module Gitoe::Repo
     end
 
     def refs
-      ret = {}
-      ref_names.each do |ref_name|
-        ret[ref_name] = ref(ref_name)
-      end
-      ret
+      Hash[
+        ref_names.map do |ref_name|
+          [ ref_name, ref(ref_name) ]
+        end
+      ]
     end
 
     def ref(name)
       resolved = Reference.lookup(@rugged, name)
-      {
-        :name   => resolved.name     ,
-        :target => resolved.target   ,
-        :type   => resolved.type     ,
-        :log    => reflog( resolved ),
-      }.freeze
+      basic = {
+          :name   => resolved.name     ,
+          :target => resolved.target   ,
+          :type   => resolved.type     ,
+          :log    => reflog( resolved ),
+        }
+      case name
+      when %r{^refs/remotes/}, %r{^refs/heads/}, 'HEAD'
+        extra = {}
+      when %r{^refs/tags/}
+        extra = deref_tag(resolved)
+      else
+        raise "error parsing ref <ref>"
+      end
+      basic.merge(extra).freeze
     end
 
     private
@@ -62,6 +71,23 @@ module Gitoe::Repo
       @rugged.refs.to_a.each do |ref_name|
         ref_name.sub! %r{^/} , ""
       end << "HEAD"
+    end
+
+    def deref_tag tag
+      target = @rugged.lookup(tag.target)
+      case target
+      when Tag
+        {
+          tag_type: 'annotated',
+          real_target: target.target.oid
+        }
+      when Commit
+        {
+          tag_type: 'lightweight'
+        }
+      else
+        raise "don't know #{tag}"
+      end
     end
 
     def reflog ref
@@ -97,9 +123,10 @@ module Gitoe::Repo
     end
   end
 
-  class Rugged_with_cache < Rugged_backend
+  class RestfulRugged < Rugged_backend
     extend Query
     include Cache
-    # ancestors: [Rugged_with_cache, Cache, Rugged_backend]
+    include RestfulRepo
+    # ancestors: [RestfulRugged, RestfulRepo, Cache, Rugged_backend]
   end
 end

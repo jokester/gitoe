@@ -37,59 +37,65 @@ module Gitoe::Repo
     end
   end
 
-  module Cache
-    # public methods:
-    #   #status()
-    #   #commits(range)
-
-    def initialize *args
-      super(*args)
-      init_cache
-      refresh_cache
-    end
+  module RestfulRepo
+    # public methods( 'resources' ):
+    #   #status
+    #   #commits
 
     def status
       {
-        :refs     => refs         , # this refreshes cache
-        :commits  => size_of_cache, # num
-        :path     => path         ,
+        :refs           => refs         ,
+        :path           => path         ,
+        :cached_commits => size_of_cache,
       }
     end
 
-    def commits query_string=nil
-      # return { order: content }
-      # order(parent_commit) < order(child_commit)
-      if query_string and query_string.size>0
-        range = Range.new( * query_string.split('..').map(&:to_i) )
-        cached_commits range
-      else
-        cached_commits
+    def commits start, options={}
+      # url : start to fetch
+      # options :
+      #   limit
+      limit = (options['limit'] || 0).to_i
+
+      this = commit start
+      queried = { this[:sha1] => this }
+      to_query = this[:parents].dup
+
+      while to_query.size > 0 and queried.size < limit
+
+        another = to_query.shift
+        next if queried.has_key?(another)
+
+        parent = commit another
+        queried[ another ] ||= parent
+        parent[:parents].each do |p|
+          next if queried.has_key? p
+          to_query.push p
+        end
       end
+      $gitoe_log[ "gathered #{queried.size} from #{start}" ]
+
+      queried
     end
+
+  end
+
+  module Cache
+    def initialize *args
+      init_cache
+      super
+    end
+
+    private
 
     def ref name
       follow_ref super
     end
 
     def follow_ref ref_hash
-      case ref_hash[:type]
-      when "commit"
-        commit ref_hash[:target]
-      when "tree"
-      else raise ref_hash[:type]
-      end
-
-      ref_hash[:log].each do |log|
-        [ :oid_old, :oid_new ].each do|key|
-          sha1 = log[key]
-          next if sha1 == "0000000000000000000000000000000000000000"
-          commit sha1
-        end
-      end
       ref_hash
     end
 
-    def commit sha1
+    def commit sha1, options={}
       # if in_cache?
       #   just take from cache
       # else
@@ -97,57 +103,21 @@ module Gitoe::Repo
       if in_cache? sha1
         return from_cache sha1
       end
-      this = super.freeze
-      if in_cache? this[:sha1]
-        return this
+      this = super(sha1).freeze
+      if not in_cache? this[:sha1]
+        add_to_cache this[:sha1], this
       end
-
-      # Hash became ordered in ruby1.9
-      # ref: http://www.igvita.com/2009/02/04/ruby-19-internals-ordered-hash/
-      queried = { this[:sha1] => this }
-      to_query = this[:parents].dup
-
-
-      while to_query.size > 0
-        start = to_query.first
-        to_query.delete start
-
-        next if queried.has_key?(start) or in_cache?(start)
-
-        parent = super start
-        queried[ start ] ||= parent
-        parent[:parents].each do |p|
-          next if queried.has_key? p
-          next if in_cache? p
-          to_query.push p
-        end
-
-      end
-      $gitoe_log[ "gathered #{queried.size} from #{sha1}" ]
-
-      # add to cache
-      sort_topo(queried).each do |s|
-        add_to_cache s, queried[s]
-      end
-
       this
     end
 
     private
-    def refresh_cache
-      refs
-    end
 
     def add_to_cache sha1, content
-      if $gitoe_debug
-        raise "#{sha1} already in cache" if in_cache? sha1
-        content[:parents].each do |parent_sha1|
-          raise "parent of #{sha1} : #{parent_sha1} not found" if not in_cache? parent_sha1
-        end
+      if $gitoe_debug and in_cache?(sha1)
+        raise "#{sha1} already in cache"
       end
-      new_id = size_of_cache
+      $gitoe_log[ "add #{sha1} to cache" ]
       @cached_commits[sha1] = content
-      @cached_commits[new_id] = content
     end
 
     def init_cache
@@ -155,7 +125,7 @@ module Gitoe::Repo
     end
 
     def size_of_cache
-      Integer( @cached_commits.size / 2 )
+      @cached_commits.size
     end
 
     def from_cache sha1
@@ -163,21 +133,7 @@ module Gitoe::Repo
     end
 
     def in_cache? key
-      case key
-      when String, Fixnum
-        @cached_commits.has_key? key
-      else
-        raise "String or Fixnum expected, got #{key}"
-      end
-    end
-
-    def cached_commits range=nil
-      case range
-      when Range
-        @cached_commits.select{|key| range.include? key }
-      else
-        @cached_commits.select{|key| key.is_a? Fixnum }
-      end
+      @cached_commits.has_key? key
     end
 
     def sort_topo queried
