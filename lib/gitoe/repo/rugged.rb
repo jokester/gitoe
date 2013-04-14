@@ -50,15 +50,6 @@ module Gitoe::Repo
       }
     end
 
-    def walk sha1, &block
-      walker = Walker.new @rugged
-      walker.push sha1
-      walker.each do |commit_obj|
-        to_hide = yield(commit_to_hash commit_obj) || []
-        to_hide.each { |s| walker.hide s }
-      end
-    end
-
     private
 
     def ref_names

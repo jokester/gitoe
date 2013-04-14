@@ -94,35 +94,35 @@ module Gitoe::Repo
       if in_cache? this[:sha1]
         return this
       end
-      queried = { this[:sha1] => this }
+
       # Hash became ordered in ruby1.9
       # ref: http://www.igvita.com/2009/02/04/ruby-19-internals-ordered-hash/
-      walk this[:sha1] do |c|
-        queried[ c[:sha1] ] = c
-        c[:parents].select{|p| in_cache? p}
-      end
-      # add to cache
-      children = Hash.new {|h,k| h[k] = [] }
-      check_first = queried.keys.reverse # parents comes first
-      while queried.size > 0
-        if check_first.size > 0
-          sha1 = check_first.shift
-          content = queried.delete sha1
-          next unless content
-        else
-          sha1, content = queried.shift
+      queried = { this[:sha1] => this }
+      to_query = this[:parents].dup
+
+
+      while to_query.size > 0
+        start = to_query.first
+        to_query.delete start
+
+        next if queried.has_key?(start) or in_cache?(start)
+
+        parent = super start
+        queried[ start ] ||= parent
+        parent[:parents].each do |p|
+          next if queried.has_key? p
+          next if in_cache? p
+          to_query.push p
         end
 
-        absent_parents = content[:parents].reject {|s| in_cache? s }
-        if absent_parents.size == 0
-          add_to_cache sha1, content
-          children[sha1].each {|c| check_first.unshift c}
-        else
-          # $rejected[sha1] += 1 if $rejected
-          absent_parents.each {|p| children[p] << sha1 }
-          queried[sha1] = content # put it back
-        end
       end
+      $gitoe_log[ "gathered #{queried.size} from #{sha1}" ]
+
+      # add to cache
+      sort_topo(queried).each do |s|
+        add_to_cache s, queried[s]
+      end
+
       this
     end
 
@@ -132,7 +132,12 @@ module Gitoe::Repo
     end
 
     def add_to_cache sha1, content
-      raise "#{sha1} already in cache" if in_cache? sha1
+      if $gitoe_debug
+        raise "#{sha1} already in cache" if in_cache? sha1
+        content[:parents].each do |parent_sha1|
+          raise "parent of #{sha1} : #{parent_sha1} not found" if not in_cache? parent_sha1
+        end
+      end
       new_id = size_of_cache
       @cached_commits[sha1] = content
       @cached_commits[new_id] = content
@@ -166,6 +171,40 @@ module Gitoe::Repo
       else
         @cached_commits.select{|key| key.is_a? Fixnum }
       end
+    end
+
+    def sort_topo queried
+
+      sorted = []
+
+      in_degree = Hash.new{|h,k| h[k] = 0 }
+      children = Hash.new{|h,k| h[k] = [] }
+
+      queried.each do |sha1,content|
+        in_degree[sha1]
+        content[:parents].each do |p|
+          in_degree[p]
+          in_degree[sha1] += 1
+          children[p] << sha1
+        end
+      end
+
+      to_remove = in_degree.keys.select{|k| in_degree[k] == 0 }
+      while to_remove.size > 0
+        # $gitoe_log[ "topo-sorting : remaining #{in_degree.size}" ]
+
+        n = to_remove.shift
+        sorted.push n
+        in_degree.delete n
+
+        children[n].each do |c|
+          new_in_degree = in_degree[c] -= 1
+          to_remove.push c if new_in_degree == 0
+        end
+      end
+
+      $gitoe_log[ "topo-sorting DONE" ]
+      return sorted.select{|s| queried.has_key? s }
     end
   end
 end
