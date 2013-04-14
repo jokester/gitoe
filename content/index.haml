@@ -24,7 +24,7 @@
             %legend open repository
             %form.form-inline
               / TODO empty here
-              %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/config")
+              %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/rails")
               %a.btn#button-open-repo
                 %i.icon-folder-open
           #control-repo_status
@@ -32,11 +32,11 @@
               status
             %ul#repo-status
               %li
-                %span.commits.badge.badge-info ?
-                %span commits
-              %li
                 %span.branches.badge.badge-info ?
                 %span refs
+              %li
+                %span.commits.badge.badge-info ?
+                %span commits
               %li
                 in
                 %span.path.badge.badge-info ???

@@ -5,9 +5,15 @@ Rake::TestTask.new do |t|
   t.pattern = "test/test*.rb"
 end
 
-desc "gitoe"
+desc "gitoe (development)"
 task :run do
   ENV["RACK_ENV"] = "development"
+  sh "bundle exec gitoe"
+end
+
+desc "gitoe (production)"
+task :production do
+  ENV["RACK_ENV"] = "production"
   sh "bundle exec gitoe"
 end
 

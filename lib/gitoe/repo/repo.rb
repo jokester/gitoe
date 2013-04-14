@@ -51,14 +51,15 @@ module Gitoe::Repo
     end
 
     def commits start, options={}
-      # url : start to fetch
+      # start :
+      #   commits to start at,
+      #   possible multiple, ','
       # options :
       #   limit
-      limit = (options['limit'] || 0).to_i
+      limit = (options['limit'] || 1000).to_i
 
-      this = commit start
-      queried = { this[:sha1] => this }
-      to_query = this[:parents].dup
+      to_query = start.split ','
+      queried = {}
 
       while to_query.size > 0 and queried.size < limit
 
@@ -66,7 +67,7 @@ module Gitoe::Repo
         next if queried.has_key?(another)
 
         parent = commit another
-        queried[ another ] ||= parent
+        queried[ parent[:sha1] ] ||= parent
         parent[:parents].each do |p|
           next if queried.has_key? p
           to_query.push p
