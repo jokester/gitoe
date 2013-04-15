@@ -27,8 +27,8 @@ class GitoeRepo
     #   success: ()->
     #   fail   : ()->
     throw "not opened" unless @path
-    to_query = Object.keys(@commits_to_fetch)[0..10]
-    param = { limit: 1000 * to_query.length }
+    to_query = Object.keys(@commits_to_fetch)[0..9]
+    param = { limit: 1000 * to_query.length } # TODO more efficent querying
     $.get("#{@path}/commits/#{to_query.join()}", param )
       .fail(@ajax_error, cb.fail)
       .done(@ajax_fetch_commits_success, cb.success)

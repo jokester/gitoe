@@ -41,8 +41,8 @@ class GitoeController
         log 'ajax_error',arg... # TODO actual error handling
 
       fetched_commit: (to_fetch, fetched)->
-        update 'commits', fetched
-        flash "#{to_fetch + fetched} commits to fetch", 1000
+        update 'commits', fetched + to_fetch
+        flash "#{to_fetch} commits to fetch", 2000
         if to_fetch > 0
           repo.fetch_commits()
 
