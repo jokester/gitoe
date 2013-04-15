@@ -37,9 +37,10 @@ class DAGtopo
 class GitoeRepo
   constructor: (@cb={})->
     # @cb: triggered unconditionally
-    #   ajax_error    :(jqXHR)->
-    #   new_reflogs   :(to_fetch, fetched)->
-    #   fetched_commit:(to_fetch, fetched)->
+    #   ajax_error    : ( jqXHR )->
+    #   new_reflogs   : ( refs )->
+    #   fetched_commit: ( to_fetch, fetched )->
+    #   located_commit: ( content )->
     @commits_to_fetch = {} # { sha1: true }
     @commits_fetched  = {} # { sha1: commit }
     @reflog           = {} # { ref_name :info }
@@ -79,6 +80,9 @@ class GitoeRepo
       for parent in content.parents
         sorter.add_edge( parent, child )
     sorted_commits = sorter.sort()
+    for sha1 in sorted_commits
+      @cb.located_commit? @commits_fetched[sha1]
+
     # TODO yield commits
 
   ajax_open_success: (json)=>
@@ -100,13 +104,34 @@ class GitoeRepo
 
   ajax_fetch_status_success: (response)=>
     @reflog = response.refs
+    refs_classified = {
+      HEAD            : undefined
+      tags            : {}
+      local_branches  : {}
+      remote_branches : {}
+    }
     for ref_name, ref of response.refs
+
+      # classify refs
+      if      /^HEAD$/.test ref_name
+        refs_classified.HEAD                      = ref
+      else if /^refs\/tags\//.test ref_name
+        refs_classified.tags[ref_name]            = ref
+      else if /^refs\/remotes\//.test ref_name
+        refs_classified.remote_branches[ref_name] = ref
+      else if /^refs\/heads\//.test ref_name
+        refs_classified.local_branches[ref_name]  = ref
+      else
+        console.log "<#{ref_name}> not resolved"
+
+      # dig commits with log
+      # TODO also dig from annotated commits
       for change in ref.log
         for field in ['oid_new', 'oid_old']
           sha1 = change[ field ]
           if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
             @commits_to_fetch[ sha1 ] = true
-    @cb.new_reflogs?( response.refs )
+    @cb.new_reflogs?( refs_classified )
 
   ajax_error: (jqXHR)=>
     @cb.ajax_error? jqXHR
