@@ -7,26 +7,24 @@ require "json"
 module Gitoe::HTTPServer
   class Repos < ::Sinatra::Base
 
-    Repo = ::Gitoe::Repo::Rugged_with_cache
+    Repo = ::Gitoe::Repo::RestfulRugged
 
     set :environment, :production
 
     def json reply
       content_type 'application/json'
-      reply[:succeed] = true if reply.is_a? Hash and not reply.has_key? :succeed
       reply.to_json
     end
 
     error do
       json \
-        :succeed => false,
         :error_message => env['sinatra.error'],
-        :trace   => env['sinatra.error'].backtrace
+        :backtrace   => env['sinatra.error'].backtrace
     end
 
     # index
     get "/" do
-      json :index => Repo.instances[:by_arg]
+      json Repo.instances[:by_arg]
     end
 
     # create
@@ -37,30 +35,36 @@ module Gitoe::HTTPServer
       repo_id = Repo.id_for(path)
       repo = Repo.find repo_id
       json \
-        :id => repo_id ,
+        :id   => repo_id ,
         :path => repo.path
     end
 
     # show
     get "/:repo_id/?" do
       repo = Repo.find params["repo_id"]
-      json :status => repo.status
+      json repo.status
     end
 
-    # sub namespace
-    # get "/:repo_id/:resource_type/?:resource_id?" do
-    Resources = Set[ 'commits' ].freeze
+    # namespace under /:repo_id/:resource
+    Resources = Set[ 'commits', 'commit' ].freeze
     get "/:repo_id/**" do
+
       repo = Repo.find( params["repo_id"] )
-      resource,arg = params[:splat].last.split('/',2)
-      # /0/commits/aaaaaaa/b/c/d
+
+      sub_str = params[:splat].last # "**" part
+
+      resource, url = sub_str.split('/',2)
+      raise "invalid resource '#{resource}'" unless Resources.include? resource
+      query_hash = env['rack.request.query_hash']
+      # /1/commits/aaaaaaa/b/c/d ? a=1 & b=1
       # => {
-      #   repo_id: "0",
+      #   repo_id: "1",
       #   resource: "commits"
       #   arg: "aaaaaaa/b/c/d"
+      #   query_hash:
       # }
-      raise "invalid resource type" unless Resources.include? resource
-      json resource => repo.send(resource.to_sym, arg)
+      # json resource => repo.send(resource.to_sym, arg, env[])
+      json repo.send(resource, url, query_hash )
     end
 
   end

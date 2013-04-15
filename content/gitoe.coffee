@@ -35,13 +35,22 @@ class GitoeController
 
   init_repo: ()->
     canvas = @canvas
-    @repo = new GitoeRepo {
+    update = @update_control_repo_status
+    repo = new GitoeRepo {
       ajax_error    : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
-      new_commit    : canvas.add_commit_async
+
+      fetched_commit: (to_fetch, fetched)->
+        update 'commits', fetched
+        flash "#{to_fetch + fetched} commits to fetch", 1000
+        if to_fetch > 0
+          repo.fetch_commits()
+
+        # canvas.add_commit_async
       new_reflogs   : (arg...)->
-        log 'TODO handle these new_reflogs:',arg...
+        log 'TODO handle these new_reflogs:', arg...
     }
+    @repo = repo
 
   init_control: ()=>
     for to_hide in [
@@ -63,26 +72,25 @@ class GitoeController
       repo_path = $(s.input_repo_path).val()
       flash "opening #{repo_path}",false
       repo.open repo_path, {
-        success: (response)-> # fetch commits
+        success: (response)-> # open success
+
           update 'path', response.path
-          repo.fetch_commits {
-            success: ()->     # fetch refs
-              repo.fetch_refs {
-                success: (response)->
-                  update 'commits', response.status.commits
-                  update 'branches', \
-                    Object.keys(response.status.refs).length
-                  flash "successfully loaded #{repo_path}",1000
-                  $(s.root).hide()
-                  for other in [
-                    'repo_status'
-                    'refs'
-                    'history'
-                  ]
-                    $(s_all[other].root)
-                      .slideDown()
-              }
-            }
+          repo.fetch_status {
+            success: (response)-> # got status
+
+              update 'branches', \
+                Object.keys(response.refs).length
+              flash "opened #{repo_path}", 2000
+              $(s.root).hide()
+              for other in [
+                'repo_status'
+                'refs'
+                'history'
+              ]
+                $(s_all[other].root)
+                  .slideDown()
+              repo.fetch_commits()
+          }
       }
 
   update_control_repo_status: (key,value)=>
