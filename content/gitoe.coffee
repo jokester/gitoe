@@ -34,7 +34,6 @@ class GitoeController
     @canvas = new GitoeCanvas id_canvas, div, { }
 
   init_repo: ()->
-    canvas = @canvas
     update = @update_control_repo_status
     repo = new GitoeRepo {
       ajax_error    : (arg...)->
@@ -46,9 +45,16 @@ class GitoeController
         if to_fetch > 0
           repo.fetch_commits()
 
-        # canvas.add_commit_async
-      new_reflogs   : (arg...)->
-        log 'TODO handle these new_reflogs:', arg...
+      located_commit: @canvas.add_commit_async
+
+      new_reflogs   : ( refs )->
+        log 'TODO handle these new_reflogs:', refs
+        for to_update in [
+          'local_branches'
+          'remote_branches'
+          'tags'
+        ]
+          update to_update, Object.keys(refs[to_update]).length
     }
     @repo = repo
 
@@ -78,8 +84,6 @@ class GitoeController
           repo.fetch_status {
             success: (response)-> # got status
 
-              update 'branches', \
-                Object.keys(response.refs).length
               flash "opened #{repo_path}", 2000
               $(s.root).hide()
               for other in [
@@ -94,11 +98,7 @@ class GitoeController
       }
 
   update_control_repo_status: (key,value)=>
-    unless key in [
-      'path'
-      'commits'
-      'branches'
-    ]
+    unless @selectors.repo_status[key]
       throw "illigal key '#{key}'"
     $(@selectors.repo_status[key]).text(value)
 
@@ -110,10 +110,12 @@ $ ->
       input_repo_path: '#input-repo-path'
     }
     repo_status: {
-      root: '#control-repo_status'
-      path: '#control-repo_status .path'
-      commits: '#control-repo_status .commits'
-      branches: '#control-repo_status .branches'
+      root           : '#control-repo_status'
+      path           : '#control-repo_status .path'
+      commits        : '#control-repo_status .commits'
+      tags           : '#control-repo_status .tags'
+      local_branches : '#control-repo_status .local.branches'
+      remote_branches: '#control-repo_status .remote.branches'
     }
     refs: {
       root: '#control-refs'
