@@ -9,10 +9,10 @@ class DAGLayout
   #   - less crossing
   #   - better looking
   #   want: referencing to position of parents
+  # XXX Maybe re-layouting
   constructor: (@cb)->
     # @cb:
-    #   draw_node : (id, layer, pos)
-    #   move_node : (id, layer, pos) # TODO yet
+    #   draw_node : ( id, layer, pos, height )
 
     # topo
     @children = {}  # { id: [ children ] }
@@ -21,38 +21,69 @@ class DAGLayout
     # layout
     @layer    = {}  # { id : layer }
     @position = {}  # { id : position }
-    @grid     = {}  # { layer: { id: position } }
+    @grid     = {}  # { layer: [ position: id ] }
+    @layer_span = {}# { id : num }
 
-  add_node: (id, parents)=>
+  add_node: ( id, parents )=>
+    @topo( id, parents )
+
+    layer      = @get_layer( id )
+    layer_span = @get_layer_span( id, layer )
+    pos        = @get_position( id, layer, layer_span )
+
+    @cb.draw_node( id, layer, pos, layer_span )
+
+  get_layer: (id)->
+    # layer = 1 + max[ parent.layer ]
+    layer = 0
+    for parent in @parents[id]
+      parent_layer = @layer[parent]
+      if parent_layer >= layer
+        layer = parent_layer + 1
+    @grid[layer] ?= []
+    @layer[id] = layer
+
+  get_layer_span: (id, layer)->
+    layer_span = 1
+    l = {}
+    for parent in @parents[id]
+      parent_layer = @layer[parent]
+      l[parent] = parent_layer
+      if parent_layer + layer_span < layer
+        layer_span = layer - parent_layer
+    @layer_span[id] = layer_span
+
+  get_position: ( id, layer, layer_span )->
+    # first appropriate position,
+    #   which
+    #   - is not occupied, on layers of <id> and all fake nodes
+    #   - TODO and preferably shorten edges
+    position   = -1
+    conflict   = true
+    layers_to_check = [(layer-layer_span+1)..(layer)]
+    grid = @grid
+    while conflict
+      position++
+      occupied = layers_to_check.filter (layer)->
+        grid[layer][position]
+      if occupied.length == 0
+        conflict = false
+
+    for layer in layers_to_check
+      @grid[layer][position] = id
+    @position[id] = position
+
+  topo: ( id, parents )->
     for parent in parents
-      cs = @children[parent]
+      cs = @children[ parent ]
       if cs is undefined
         throw "<#{id}> added before its parent <#{parent}>"
       else
         cs.push id
-    if @parents[id]
+     if @parents[id]
       throw "<#{id}> added more than once"
     @parents[id]  = parents
     @children[id] = []
-    layer = @layer_of(id)
-    pos   = @position_of(id,layer)
-    @cb.draw_node(id,layer,pos)
-
-  layer_of: (id)->
-    # layer = 1 + max[ parent.layer ]
-    layer_no = 0
-    for parent in @parents[id]
-      parent_layer = @layer[parent]
-      if parent_layer >= layer_no
-        layer_no = parent_layer + 1
-    @layer[id] = layer_no
-
-  position_of: ( id, layer )->
-    @grid[layer] ?= {}
-    existing_commits = Object.keys( @grid[layer] )
-    pos = existing_commits.length
-    @grid[layer][id] = pos
-    @position[id] = pos
 
   query_parents: (id)=>
     @parents[id]
@@ -125,7 +156,7 @@ class GitoeCanvas
     if coord.left > @canvas_size.width
       @canvas_inc_width()
       @focus(coord)
-    else if coord.top > @canvas_size.height
+    if coord.top > @canvas_size.height
       @canvas_inc_height()
       @focus(coord)
     @objs[sha1] = {
