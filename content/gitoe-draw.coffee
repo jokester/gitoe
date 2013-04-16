@@ -10,9 +10,10 @@ class DAGLayout
   #   - better looking
   #   want: referencing to position of parents
   # XXX Maybe re-layouting
+  # XXX Maybe layout in layer --- how to trigger?
   constructor: (@cb)->
     # @cb:
-    #   draw_node : ( id, layer, pos, height )
+    #   draw_node : ( id, layer, pos )
 
     # topo
     @children = {}  # { id: [ children ] }
@@ -153,20 +154,23 @@ class GitoeCanvas
     commit_box = @draw_commit_box(coord)
     text = @draw_commit_text(coord, sha1)
     paths = @draw_paths(coord, parents)
+    need_focus = false
     if coord.left > @canvas_size.width
       @canvas_inc_width()
-      @focus(coord)
+      need_focus = true
     if coord.top > @canvas_size.height
       @canvas_inc_height()
+      need_focus = true
+    if need_focus
       @focus(coord)
     @objs[sha1] = {
-      commit_box: commit_box
-      text: text
-      paths: paths
+      commit_box : commit_box
+      text       : text
+      paths      : paths
     }
 
   commit_coord: (layer,pos)->{
-    # left and top coord of cell
+    # left and top coord of commit-box
     left: (@constant.padding_left + @constant.outer_width  * pos)
     top : (@constant.padding_top  + @constant.outer_height * layer)
   }
@@ -196,14 +200,46 @@ class GitoeCanvas
     ].join ' '
     for p in parents_pos
       coord_p = @commit_coord(p.layer, p.pos)
-      path_command = start + [
-        'L'
-        coord_p.left + @constant.box.width/2
-        coord_p.top  + @constant.box.height
-      ].join ' '
-      paths.push @canvas.path( path_command )
+      path_command = @path_command(coord, coord_p)
+      if path_command
+        paths.push @canvas.path( start + path_command )
     paths
 
+  path_command: ( coord, coord_p )->
+    # command string to draw path,
+    # ref http://www.w3.org/TR/SVG/paths.html#PathDataLinetoCommands
+    bottom_of_parent = {
+      x: coord_p.left + @constant.box.width / 2
+      y: coord_p.top  + @constant.box.height
+    }
+    top_of_highest_fake_node = {
+      x: coord.left  + @constant.box.width / 2
+      y: coord_p.top + @constant.outer_height
+    }
+    if coord.left == coord_p.left # same column
+      [
+        'L'
+        bottom_of_parent.x
+        bottom_of_parent.y
+      ].join ' '
+    else
+      vertical_distance = @constant.outer_height - @constant.box.height
+      ratio = 0.3
+      [
+        'L'
+        top_of_highest_fake_node.x
+        top_of_highest_fake_node.y
+        'C'
+        top_of_highest_fake_node.x
+        @mix( top_of_highest_fake_node.y, bottom_of_parent.y , ratio)
+        bottom_of_parent.x
+        @mix( top_of_highest_fake_node.y, bottom_of_parent.y , 1-ratio)
+        bottom_of_parent.x
+        bottom_of_parent.y
+      ].join ' '
+
+  mix: (a,b,ratio)->
+    a*ratio + b*(1-ratio)
   focus: (coord)->
     @div.scrollTo {
       left: coord.left - 500
