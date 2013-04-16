@@ -99,10 +99,10 @@ class GitoeCanvas
     @objs = {}    # { sha1 : canvas objs }
 
   add_commit_async: (commit)=>
-    setTimeout( @add_commit.bind( @, commit )  ,50 )
+    setTimeout( @add_commit.bind( @, commit )  , 500 )
 
   draw_async: (sha1, layer, pos)=>
-    setTimeout( @draw.bind( @,sha1,layer,pos ), 50 )
+    setTimeout( @draw.bind( @,sha1,layer,pos ), 0 )
 
   # TODO
   # ref_on_commit: (ref)
@@ -188,10 +188,10 @@ class GitoeCanvas
     )
 
   canvas_inc_width: ()->
-    @canvas_size.width *= 1.02
+    @canvas_size.width *= 1.1
     @canvas_resize()
   canvas_inc_height: ()->
-    @canvas_size.height *= 1.02
+    @canvas_size.height *= 1.1
     @canvas_resize()
   canvas_resize: ()->
     @canvas.setSize(

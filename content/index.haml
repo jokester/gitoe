@@ -24,13 +24,17 @@
             %legend open repository
             %form.form-inline
               / TODO empty here
-              %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/config")
+              %input#input-repo-path(placeholder="path of git repo" type="text" value="/home/mono/gitoe")
               %a.btn#button-open-repo
                 %i.icon-folder-open
           #control-repo_status
             %legend
               status
             %ul#repo-status
+              %li
+                %span.path.badge.badge-success ???
+              / TODO a refresh-repo button around here
+              %br
               %li
                 %span.tags.badge.badge-info ?
                 %span tags
@@ -43,10 +47,6 @@
               %li
                 %span.commits.badge.badge-info ?
                 %span commits
-              %li
-                in
-                %span.path.badge.badge-info ???
-              / TODO a refresh-repo button around here
           #control-refs
             %legend refs
           #control-history

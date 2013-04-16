@@ -41,7 +41,7 @@ class GitoeController
 
       fetched_commit: (to_fetch, fetched)->
         update 'commits', fetched + to_fetch
-        flash "#{to_fetch} commits to fetch", 2000
+        flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
 
