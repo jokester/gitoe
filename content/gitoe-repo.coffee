@@ -61,7 +61,8 @@ class GitoeRepo
     #   fail   : ()->
     throw "not opened" unless @path
     to_query = Object.keys(@commits_to_fetch)[0..9]
-    param = { limit: 1000 * to_query.length } # TODO more efficent querying
+    # TODO find a more efficient formula
+    param = { limit: 1000 }
     $.get("#{@path}/commits/#{to_query.join()}", param )
       .fail(@ajax_error, cb.fail)
       .done(@ajax_fetch_commits_success, cb.success)
@@ -95,7 +96,6 @@ class GitoeRepo
       @commits_fetched[ sha1 ] ||= content
       for sha1_parent in content.parents
         if not @commits_fetched[ sha1_parent ]
-          console.log content
           @commits_to_fetch[ sha1_parent ] = true
     to_fetch = Object.keys(@commits_to_fetch).length
     fetched  = Object.keys(@commits_fetched).length

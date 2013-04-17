@@ -78,6 +78,8 @@ class GitoeController
       repo_path = $(s.input_repo_path).val()
       flash "opening #{repo_path}",false
       repo.open repo_path, {
+        fail:    (wtf)->
+          flash "error opening #{repo_path}"
         success: (response)-> # open success
 
           update 'path', response.path

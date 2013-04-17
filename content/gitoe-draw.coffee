@@ -96,7 +96,7 @@ class DAGLayout
 class GitoeCanvas
   @CONST  : {
     canvas: {
-      width : 2000
+      width : 600
       height: 1200
     }
     padding_left: 60
@@ -158,7 +158,7 @@ class GitoeCanvas
     if coord.left > @canvas_size.width - 500
       @canvas_inc_width()
       need_focus = true
-    if coord.top > @canvas_size.height
+    if coord.top > @canvas_size.height - 500
       @canvas_inc_height()
       need_focus = true
     if need_focus
