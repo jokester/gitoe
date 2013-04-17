@@ -31,8 +31,6 @@ module Gitoe::Repo
       case obj
       when Commit
         commit_to_hash obj
-      when Tag
-        tag_to_hash obj
       else
         raise "#{obj} is not commit"
       end
@@ -107,18 +105,9 @@ module Gitoe::Repo
       {
         :sha1    => commit_obj.oid,
         :parents => commit_obj.parents.map(&:oid),
-        :type    => :commit
-        # :author  => commit_obj.author,
-        # :committer => commit_obj.committer
-      }.freeze
-    end
-
-    def tag_to_hash tag_obj
-      {
-        :sha1    => tag_obj.oid,
-        :parents => [tag_obj.target.oid],
-        :type    => :annotated_tag
-        # :tagger  => tag_obj.tagger
+        # :type    => :commit,
+        :author  => commit_obj.author,
+        :committer => commit_obj.committer
       }.freeze
     end
   end
