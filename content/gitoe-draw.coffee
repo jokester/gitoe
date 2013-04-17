@@ -155,7 +155,7 @@ class GitoeCanvas
     text = @draw_commit_text(coord, sha1)
     paths = @draw_paths(coord, parents)
     need_focus = false
-    if coord.left > @canvas_size.width
+    if coord.left > @canvas_size.width - 500
       @canvas_inc_width()
       need_focus = true
     if coord.top > @canvas_size.height
@@ -255,7 +255,7 @@ class GitoeCanvas
     )
 
   canvas_inc_width: ()->
-    @canvas_size.width *= 1.1
+    @canvas_size.width += 500
     @canvas_resize()
   canvas_inc_height: ()->
     @canvas_size.height *= 1.1
