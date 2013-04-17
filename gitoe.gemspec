@@ -8,11 +8,11 @@ Gem::Specification.new do |gem|
   gem.version       = Gitoe::VERSION
   gem.authors       = ["Wang Guan"]
   gem.email         = ["momocraft@gmail.com"]
-  gem.description   = %q{Write a gem description}
-  gem.summary       = %q{Write a gem summary}
-  gem.homepage      = ""
+  gem.description   = %q{visualize local git activities}
+  gem.summary       = %q{visualize local git activities}
+  gem.homepage      = "https://github.com/jokester/gitoe"
 
-  gem.files         = `git ls-files`.split($/)
+  gem.files         = `git ls-files`.split($/).select {|fn| File.file? fn }
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
