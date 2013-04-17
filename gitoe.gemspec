@@ -19,6 +19,7 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency "rugged"       # git
   gem.add_runtime_dependency "sinatra"      # web server
+  gem.add_runtime_dependency "activesupport"# JSON encoding
 
   gem.add_development_dependency "nanoc"
   gem.add_development_dependency "listen"

@@ -2,7 +2,7 @@
 require "gitoe"
 require "gitoe/repo/rugged"
 require "sinatra"
-require "json"
+require "active_support"
 
 module Gitoe::HTTPServer
   class Repos < ::Sinatra::Base
@@ -13,7 +13,7 @@ module Gitoe::HTTPServer
 
     def json reply
       content_type 'application/json'
-      reply.to_json
+      ::ActiveSupport::JSON.encode(reply)
     end
 
     error do
