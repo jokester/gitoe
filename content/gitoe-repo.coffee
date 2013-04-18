@@ -2,6 +2,9 @@ $ = jQuery or throw "demand jQuery"
 
 url_root = "/repo"
 
+exec_callback = (context,fun,args)->
+  fun.apply(content, args)
+
 class DAGtopo
   constructor: ()->
     @edges = {}  # { u: [v] } when edges are < u => v  >
@@ -35,17 +38,22 @@ class DAGtopo
     return sorted
 
 class GitoeRepo
-  constructor: (@cb={})->
-    # @cb: triggered unconditionally
-    #   ajax_error    : ( jqXHR )->
-    #   new_reflogs   : ( refs )->
-    #   fetched_commit: ( to_fetch, fetched )->
-    #   located_commit: ( content )->
+  constructor: ()->
     @commits_to_fetch = {} # { sha1: true }
     @commits_fetched  = {} # { sha1: commit }
     @reflog           = {} # { ref_name :info }
+    @cb               = {} # { name: fun }
 
     @commits_ignored = { "0000000000000000000000000000000000000000" : true }
+
+  set_cb: (new_cb)->
+    # cb: triggered unconditionally
+    #   ajax_error    : ( jqXHR )->
+    #   fetched_commit: ( to_fetch, fetched )->
+    #   yield_reflogs : ( refs )->
+    #   yield_commit  : ( content )->
+    for name, fun of new_cb
+      @cb[name] = fun
 
   open: (path,cb = {})=>
     # cb:
@@ -82,9 +90,7 @@ class GitoeRepo
         sorter.add_edge( parent, child )
     sorted_commits = sorter.sort()
     for sha1 in sorted_commits
-      @cb.located_commit? @commits_fetched[sha1]
-
-    # TODO yield commits
+      @cb.yield_commit? @commits_fetched[sha1]
 
   ajax_open_success: (json)=>
     throw "already opened" if @path
@@ -132,7 +138,7 @@ class GitoeRepo
           sha1 = change[ field ]
           if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
             @commits_to_fetch[ sha1 ] = true
-    @cb.new_reflogs?( refs_classified )
+    @cb.yield_reflogs?( refs_classified )
 
   ajax_error: (jqXHR)=>
     @cb.ajax_error? jqXHR

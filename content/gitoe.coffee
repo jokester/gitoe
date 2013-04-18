@@ -34,20 +34,21 @@ class GitoeController
     @canvas = new GitoeCanvas id_canvas, div, { }
 
   init_repo: ()->
+    @repo = repo = new GitoeRepo()
     update = @update_control_repo_status
-    repo = new GitoeRepo {
-      ajax_error    : (arg...)->
+    repo.set_cb {
+      ajax_error     : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
-      fetched_commit: (to_fetch, fetched)->
+      fetched_commit : (to_fetch, fetched)->
         update 'commits', fetched + to_fetch
         flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
 
-      located_commit: @canvas.add_commit_async
+      yield_commit : @canvas.add_commit_async
 
-      new_reflogs   : ( refs )->
+      yield_reflogs   : ( refs )->
         log 'TODO handle these new_reflogs:', refs
         for to_update in [
           'local_branches'
@@ -56,7 +57,6 @@ class GitoeController
         ]
           update to_update, Object.keys(refs[to_update]).length
     }
-    @repo = repo
 
   init_control: ()=>
     for to_hide in [
