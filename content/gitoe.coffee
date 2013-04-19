@@ -56,6 +56,7 @@ class GitoeController
           'tags'
         ]
           update to_update, Object.keys(refs[to_update]).length
+      yield_history: log
     }
 
   init_control: ()=>

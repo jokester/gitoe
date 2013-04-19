@@ -37,14 +37,20 @@ class DAGtopo
           nodes_whose_in_degree_is_0.push to
     return sorted
 
+class GitoeHistorian
+  constructor: (@refs_classified)->
+  parse: (cb)->
+    return unless cb
+    reflogs = []
+    cb reflogs
+
 class GitoeRepo
   constructor: ()->
     @commits_to_fetch = {} # { sha1: true }
     @commits_fetched  = {} # { sha1: commit }
     @reflog           = {} # { ref_name :info }
     @cb               = {} # { name: fun }
-
-    @commits_ignored = { "0000000000000000000000000000000000000000" : true }
+    @commits_ignored  = { "0000000000000000000000000000000000000000" : true }
 
   set_cb: (new_cb)->
     # cb: triggered unconditionally
@@ -52,6 +58,7 @@ class GitoeRepo
     #   fetched_commit: ( to_fetch, fetched )->
     #   yield_reflogs : ( refs )->
     #   yield_commit  : ( content )->
+    #   yield_history : ( changes )->
     for name, fun of new_cb
       @cb[name] = fun
 
@@ -139,6 +146,7 @@ class GitoeRepo
           if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
             @commits_to_fetch[ sha1 ] = true
     @cb.yield_reflogs?( refs_classified )
+    (new GitoeHistorian(refs_classified)).parse @cb.yield_history
 
   ajax_error: (jqXHR)=>
     @cb.ajax_error? jqXHR
