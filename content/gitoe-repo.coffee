@@ -5,17 +5,19 @@ url_root = "/repo"
 exec_callback = (context,fun,args)->
   fun.apply(content, args)
 
+clone = (obj)->
+  $.extend {}, obj
+
 class DAGtopo
   constructor: ()->
-    @edges = {}  # { u: [v] } when edges are < u => v  >
+    @edges = {}  # { u: [v] } for edges < u → v >
 
-  add_edge: (from,to)->
+  add_edge: (from,to)-> # nil
     @edges[from] ?= []
     @edges[to]   ?= []
     @edges[from].push to
 
-  sort: ()->
-    # return nodes, in topological order
+  sort: ()-> # [nodes] , in topological order
 
     in_degree = {}
     for from, to_s of @edges
@@ -38,11 +40,9 @@ class DAGtopo
     return sorted
 
 class GitoeHistorian
-  constructor: (@refs_classified)->
-  parse: (cb)->
+  constructor: ()->
+  parse: ( refs_classified, cb )->
     return unless cb
-    reflogs = []
-    cb reflogs
 
 class GitoeRepo
   constructor: ()->
@@ -117,27 +117,8 @@ class GitoeRepo
       @fetch_alldone()
 
   ajax_fetch_status_success: (response)=>
-    @reflog = response.refs
-    refs_classified = {
-      HEAD            : undefined
-      tags            : {}
-      local_branches  : {}
-      remote_branches : {}
-    }
+    refs_classified = @classify_ref response.refs
     for ref_name, ref of response.refs
-
-      # classify refs
-      if      /^HEAD$/.test ref_name
-        refs_classified.HEAD                      = ref
-      else if /^refs\/tags\//.test ref_name
-        refs_classified.tags[ref_name]            = ref
-      else if /^refs\/remotes\//.test ref_name
-        refs_classified.remote_branches[ref_name] = ref
-      else if /^refs\/heads\//.test ref_name
-        refs_classified.local_branches[ref_name]  = ref
-      else
-        console.log "<#{ref_name}> not resolved"
-
       # dig commits with log
       # TODO also dig from annotated commits
       for change in ref.log
@@ -146,10 +127,35 @@ class GitoeRepo
           if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
             @commits_to_fetch[ sha1 ] = true
     @cb.yield_reflogs?( refs_classified )
-    (new GitoeHistorian(refs_classified)).parse @cb.yield_history
 
   ajax_error: (jqXHR)=>
     @cb.ajax_error? jqXHR
 
+  classify_ref: (reflog)-> # { refs_dict }
+    refs = {
+      tags            : {} # { name : sha1 }
+      local           : {} # { branch :  {}  }
+      remote          : {} # { remote : { branch: {} } }
+    }
+    for ref_name, ref of reflog
+      splited = ref_name.split "/"
+      if splited[0] == "HEAD" and splited.length == 1
+        refs.local["HEAD"] = ref
+      else if splited[0] == "refs"
+        switch splited[1]
+          when "heads"
+            refs.local[ splited[2] ] = ref
+          when   "tags"
+            refs.tags[  splited[2] ]  = ref
+          when   "remotes"
+            refs.remote[ splited[2] ] ?= {}
+            refs.remote[ splited[2] ][ splited[3] ] =ref
+          else
+            console.log "not recognized", ref_name
+      else
+        console.log "not recognized", ref_name
+    refs
+
 @exports ?= { gitoe: {} }
-exports.gitoe.GitoeRepo = GitoeRepo
+exports.gitoe.GitoeRepo      = GitoeRepo
+exports.gitoe.GitoeHistorian = GitoeHistorian

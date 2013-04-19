@@ -50,12 +50,12 @@ class GitoeController
 
       yield_reflogs   : ( refs )->
         log 'TODO handle these new_reflogs:', refs
-        for to_update in [
-          'local_branches'
-          'remote_branches'
-          'tags'
-        ]
-          update to_update, Object.keys(refs[to_update]).length
+        #for to_update in [
+        #  'local_branches'
+        #  'remote_branches'
+        #  'tags'
+        #]
+        #  update to_update, Object.keys(refs[to_update]).length
       yield_history: log
     }
 
