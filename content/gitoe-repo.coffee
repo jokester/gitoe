@@ -40,9 +40,18 @@ class DAGtopo
     return sorted
 
 class GitoeHistorian
-  constructor: ()->
-  parse: ( refs_classified, cb )->
-    return unless cb
+  constructor: (@cb)->
+    # cb:
+    #   clear_refs   : ()->
+    #   tags         : ()
+    #   local_reflog : ()
+    #   remote_reflog: ()
+  analysis_repo: (repo)-> # [ change ]
+
+  parse: ( refs_classified )=>
+    @cb.local? aaaaa
+    @cb.tags? refs_classified.tags
+    console.log refs_classified
 
 class GitoeRepo
   constructor: ()->
@@ -58,7 +67,6 @@ class GitoeRepo
     #   fetched_commit: ( to_fetch, fetched )->
     #   yield_reflogs : ( refs )->
     #   yield_commit  : ( content )->
-    #   yield_history : ( changes )->
     for name, fun of new_cb
       @cb[name] = fun
 

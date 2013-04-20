@@ -17,12 +17,14 @@ flash = do->
     flash_div.text(text)
     setTimeout(clear, delay) if delay
 
+GitoeHistorian   = @exports.gitoe.GitoeHistorian or throw "GitoeHistorian not found"
 GitoeRepo   = @exports.gitoe.GitoeRepo   or throw "GitoeRepo not found"
 GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
 class GitoeController
   constructor: (@selectors)->
     @init_canvas()
+    @init_historian()
     @init_repo()
     @init_control()
     @init_control_repo()
@@ -48,15 +50,13 @@ class GitoeController
 
       yield_commit : @canvas.add_commit_async
 
-      yield_reflogs   : ( refs )->
-        log 'TODO handle these new_reflogs:', refs
+      yield_reflogs   : @historian.parse
         #for to_update in [
         #  'local_branches'
         #  'remote_branches'
         #  'tags'
         #]
         #  update to_update, Object.keys(refs[to_update]).length
-      yield_history: log
     }
 
   init_control: ()=>
@@ -100,6 +100,13 @@ class GitoeController
           }
       }
 
+  init_historian: ()->
+    canvas = @canvas
+    @historian = new GitoeHistorian {
+      tags: (tags)->
+        log "would draw tags", tags
+      #log 'TODO handle these new_reflogs:', refs
+    }
   update_control_repo_status: (key,value)=>
     unless @selectors.repo_status[key]
       throw "illigal key '#{key}'"
