@@ -21,6 +21,17 @@ GitoeHistorian   = @exports.gitoe.GitoeHistorian or throw "GitoeHistorian not fo
 GitoeRepo   = @exports.gitoe.GitoeRepo   or throw "GitoeRepo not found"
 GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
+class GitoeUI
+  constructor: (@selectors)->
+    for to_hide in [
+      'repo_status'
+      'refs'
+      'history'
+    ]
+      $(@selectors[to_hide].root)
+        .hide()
+    update = @update_control_repo_status
+
 class GitoeController
   constructor: (@selectors)->
     @init_canvas()
@@ -37,20 +48,20 @@ class GitoeController
 
   init_repo: ()->
     @repo = repo = new GitoeRepo()
-    update = @update_control_repo_status
     repo.set_cb {
-      ajax_error     : (arg...)->
+      ajax_error      : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
-      fetched_commit : (to_fetch, fetched)->
+      fetched_commit  : (to_fetch, fetched)->
         update 'commits', fetched + to_fetch
         flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
 
-      yield_commit : @canvas.add_commit_async
+      yield_commit    : @canvas.add_commit_async
 
-      yield_reflogs   : @historian.parse
+      yield_reflogs   : (reflogs)->
+        @historian.parse
         #for to_update in [
         #  'local_branches'
         #  'remote_branches'
@@ -58,15 +69,6 @@ class GitoeController
         #]
         #  update to_update, Object.keys(refs[to_update]).length
     }
-
-  init_control: ()=>
-    for to_hide in [
-      'repo_status'
-      'refs'
-      'history'
-    ]
-      $(@selectors[to_hide].root)
-        .hide()
 
   init_control_repo: ()->
     # binding
@@ -82,11 +84,9 @@ class GitoeController
         fail:    (wtf)->
           flash "error opening #{repo_path}"
         success: (response)-> # open success
-
           update 'path', response.path
           repo.fetch_status {
             success: (response)-> # got status
-
               flash "opened #{repo_path}", 2000
               $(s.root).hide()
               for other in [

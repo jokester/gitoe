@@ -3,7 +3,7 @@ $ = jQuery or throw "demand jQuery"
 url_root = "/repo"
 
 exec_callback = (context,fun,args)->
-  fun.apply(content, args)
+  fun.apply(context, args)
 
 clone = (obj)->
   $.extend {}, obj
@@ -18,14 +18,12 @@ class DAGtopo
     @edges[from].push to
 
   sort: ()-> # [nodes] , in topological order
-
     in_degree = {}
     for from, to_s of @edges
       in_degree[from] ?= 0
       for to in to_s
         in_degree[to] ?= 0
         in_degree[to]++
-
     sorted =  []
     nodes_whose_in_degree_is_0 =
       Object.keys(in_degree).filter (node)->
@@ -57,7 +55,6 @@ class GitoeRepo
   constructor: ()->
     @commits_to_fetch = {} # { sha1: true }
     @commits_fetched  = {} # { sha1: commit }
-    @reflog           = {} # { ref_name :info }
     @cb               = {} # { name: fun }
     @commits_ignored  = { "0000000000000000000000000000000000000000" : true }
 
@@ -116,10 +113,10 @@ class GitoeRepo
       delete @commits_to_fetch[ sha1 ]
       @commits_fetched[ sha1 ] ||= content
       for sha1_parent in content.parents
-        if not @commits_fetched[ sha1_parent ]
+        if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
           @commits_to_fetch[ sha1_parent ] = true
     to_fetch = Object.keys(@commits_to_fetch).length
-    fetched  = Object.keys(@commits_fetched).length
+    fetched  = Object.keys(@commits_fetched ).length
     @cb.fetched_commit?(to_fetch, fetched)
     if to_fetch == 0
       @fetch_alldone()
@@ -128,7 +125,7 @@ class GitoeRepo
     refs_classified = @classify_ref response.refs
     for ref_name, ref of response.refs
       # dig commits with log
-      # TODO also dig from annotated commits
+      # TODO also dig from annotated tags
       for change in ref.log
         for field in ['oid_new', 'oid_old']
           sha1 = change[ field ]
@@ -153,9 +150,9 @@ class GitoeRepo
         switch splited[1]
           when "heads"
             refs.local[ splited[2] ] = ref
-          when   "tags"
+          when "tags"
             refs.tags[  splited[2] ]  = ref
-          when   "remotes"
+          when "remotes"
             refs.remote[ splited[2] ] ?= {}
             refs.remote[ splited[2] ][ splited[3] ] =ref
           else
