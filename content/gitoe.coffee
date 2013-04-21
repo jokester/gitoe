@@ -31,6 +31,15 @@ class GitoeUI
       $(@selectors[to_hide].root)
         .hide()
     update = @update_control_repo_status
+  set_cb: (new_cb)->
+    #   open_repo     : ( path )->
+    #   highlight_commit: (sha1)->
+    #   yield_reflogs : ( refs )->
+    #   yield_commit  : ( content )->
+    for name, fun of new_cb
+      @cb[name] = fun
+  clear: ()->
+  input
 
 class GitoeController
   constructor: (@selectors)->
