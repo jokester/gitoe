@@ -22,132 +22,153 @@ GitoeRepo   = @exports.gitoe.GitoeRepo   or throw "GitoeRepo not found"
 GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
 class GitoeUI
+
   constructor: (@selectors)->
-    for to_hide in [
-      'repo_status'
-      'refs'
-      'history'
-    ]
-      $(@selectors[to_hide].root)
-        .hide()
-    update = @update_control_repo_status
+    @cb = {}
+    for to_hide in [ "status", "refs", "history" ]
+      @section(to_hide).hide()
+    @bind_events()
+
   set_cb: (new_cb)->
-    #   open_repo     : ( path )->
-    #   highlight_commit: (sha1)->
-    #   yield_reflogs : ( refs )->
-    #   yield_commit  : ( content )->
+    #   repo_open     : ( path )->
     for name, fun of new_cb
       @cb[name] = fun
-  clear: ()->
-  input
+
+  update_status: (key,value)=>
+    unless @selectors.status[key]
+      throw "illigal key '#{key}'"
+    console.log key,value
+    $(@selectors.status[key]).text(value)
+
+  slideDown: (section)=>
+    @section( section ).slideDown()
+  slideUp: (section)->
+    @section( section ).slideUp()
+
+  section: (name)->
+    $( @selectors[name].here )
+
+  elem:    (section, name)->
+    selector = [
+      @selectors.here
+      @selectors[section].here
+      @selectors[section][name]
+    ].join( " " )
+    selected = $(selector)
+    if selected.length != 1
+      throw "<#{selector}> gives #{selected.length} results"
+    else
+      selected
+
+  bind_events: ()->
+    cb              = @cb
+    input_repo_path = @elem "open", "path"
+    btn_repo_open   = @elem "open", "open"
+    btn_repo_open.on "click", ()->
+      path = input_repo_path.val()
+      cb.repo_open? path
 
 class GitoeController
-  constructor: (@selectors)->
-    @init_canvas()
-    @init_historian()
+  constructor: (selectors)->
     @init_repo()
-    @init_control()
-    @init_control_repo()
-
-  init_canvas:()->
-    id_canvas = $(@selectors.canvas.canvas).attr("id")
-    id_canvas or throw "canvas not found"
-    div = $(@selectors.canvas.root)
-    @canvas = new GitoeCanvas id_canvas, div, { }
+    @init_historian()
+    @init_canvas( selectors.canvas.id, selectors.canvas.here )
+    @init_control( selectors.control )
+    @bind_events()
 
   init_repo: ()->
-    @repo = repo = new GitoeRepo()
+    @repo = new GitoeRepo()
+
+  init_historian: ()->
+    @historian = new GitoeHistorian
+
+  init_canvas:( id_canvas, canvas_container )->
+    @canvas = new GitoeCanvas id_canvas, canvas_container, { }
+
+  init_control: ( selectors_in_control )->
+    @control = new GitoeUI( selectors_in_control )
+
+  bind_events: ()->
+    repo      = @repo
+    canvas    = @canvas
+    historian = @historian
+    control   = @control
+
     repo.set_cb {
       ajax_error      : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
       fetched_commit  : (to_fetch, fetched)->
-        update 'commits', fetched + to_fetch
+        control.update_status 'commits', fetched + to_fetch
         flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
+        else
+          repo.fetch_alldone()
 
-      yield_commit    : @canvas.add_commit_async
+      fetch_status    : (status)->
+        repo.fetch_commits()
+        historian.parse status.refs
+        control.update_status "path", status.path
 
-      yield_reflogs   : (reflogs)->
-        @historian.parse
-        #for to_update in [
-        #  'local_branches'
-        #  'remote_branches'
-        #  'tags'
-        #]
-        #  update to_update, Object.keys(refs[to_update]).length
+      yield_commit    : canvas.add_commit_async
+
     }
 
-  init_control_repo: ()->
-    # binding
-    repo = @repo
-    s = @selectors.repo_open
-    s_all = @selectors
-    update = @update_control_repo_status
-
-    $(s.button_open).on 'click',->
-      repo_path = $(s.input_repo_path).val()
-      flash "opening #{repo_path}",false
-      repo.open repo_path, {
-        fail:    (wtf)->
-          flash "error opening #{repo_path}"
-        success: (response)-> # open success
-          update 'path', response.path
-          repo.fetch_status {
-            success: (response)-> # got status
-              flash "opened #{repo_path}", 2000
-              $(s.root).hide()
-              for other in [
-                'repo_status'
-                'refs'
-                'history'
-              ]
-                $(s_all[other].root)
-                  .slideDown()
-              repo.fetch_commits()
-          }
-      }
-
-  init_historian: ()->
-    canvas = @canvas
-    @historian = new GitoeHistorian {
-      tags: (tags)->
-        log "would draw tags", tags
-      #log 'TODO handle these new_reflogs:', refs
+    control.set_cb {
+      repo_open : (path)->
+        flash "opening #{path}",false
+        repo.open path, {
+          fail:    (wtf)->
+            flash "error opening #{path}"
+          success: (response)-> # opened
+            flash "opened #{path}", 2000
+            control.slideUp "open"
+            repo.fetch_status {
+              success: ()->
+                control.slideDown "status"
+                control.slideDown "refs"
+                control.slideDown "history"
+            }
+        }
     }
-  update_control_repo_status: (key,value)=>
-    unless @selectors.repo_status[key]
-      throw "illigal key '#{key}'"
-    $(@selectors.repo_status[key]).text(value)
+    historian.set_cb {
+      update_status:  control.update_status
+    
+    }
 
 $ ->
-  ids = {
-    repo_open:   {
-      root           : '#control-repo_open'
-      button_open    : '#button-open-repo'
-      input_repo_path: '#input-repo-path'
-    }
-    repo_status: {
-      root           : '#control-repo_status'
-      path           : '#control-repo_status .path'
-      commits        : '#control-repo_status .commits'
-      tags           : '#control-repo_status .tags'
-      local_branches : '#control-repo_status .local.branches'
-      remote_branches: '#control-repo_status .remote.branches'
-    }
-    refs: {
-      root: '#control-refs'
-    }
-    history: {
-      root: '#control-history'
+  selectors = {
+    control:  {
+      here: '#control'
+      open:   {
+        here : '.open'
+        path : '.path'
+        open : '.open-btn'
+      }
+      status: {
+        here           : '.status'
+        path           : '.path'
+        commits        : '.commits'
+        tags           : '.tags'
+        local_branches : '.local.branches'
+        remote_branches: '.remote.branches'
+        remote_repos: '.remote.repos'
+      }
+      refs: {
+        here           : '.refs'
+      }
+      history: {
+        here           : '.history'
+        list           : 'ul'
+      }
     }
     canvas:  {
-      root:   "#canvas-container"
-      canvas: "#graph"
+      here             : '#canvas-container'
+      id               : 'graph'
     }
   }
 
-  c = new GitoeController( ids )
+  c = new GitoeController( selectors )
 
-  $("#button-open-repo").click() # TODO remove this in normal version
+  $( selectors.control.open.open ).click() # TODO remove this in normal version

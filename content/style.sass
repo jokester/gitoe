@@ -1,28 +1,33 @@
 #col1, #col2
   padding-top: 5px
   height: 600px
+
 #banner
   width: 100%
   padding: 5px
+
 #flash
   position: absolute
 #flash:empty
   display: none
+
 #canvas-container
+  overflow: scroll
+  width: 900px
+  height: 600px
   #graph
     background-color: #eee
     width: 0px
     height: 0px
     margin: 10px 0px
-#repo-status
-  list-style: none
-  .badge
-    text-align: center
-    min-width : 4em
-#canvas-container
-  overflow: scroll
-  width: 900px
-  height: 600px
+
+.control
+  li
+    list-style: none
+  .status
+    .badge
+      text-align: center
+      min-width : 4em
 
 ::-webkit-scrollbar
   width: 10px

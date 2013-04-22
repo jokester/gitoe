@@ -38,18 +38,51 @@ class DAGtopo
     return sorted
 
 class GitoeHistorian
-  constructor: (@cb)->
+  constructor: ()->
+    @cb               = {} # { name: fun }
+
+  set_cb: (new_cb)->
     # cb:
-    #   clear_refs   : ()->
-    #   tags         : ()
-    #   local_reflog : ()
-    #   remote_reflog: ()
+    #   update       : (key, num)
+    for name, fun of new_cb
+      @cb[name] = fun
+
   analysis_repo: (repo)-> # [ change ]
 
-  parse: ( refs_classified )=>
-    @cb.local? aaaaa
-    @cb.tags? refs_classified.tags
-    console.log refs_classified
+  parse: ( refs_raw )->
+    refs = @classify refs_raw
+    @update_status refs
+
+  classify: (reflog)-> # { refs_dict }
+    refs = {
+      tags            : {} # { name : sha1 }
+      local           : {} # { branch :  {}  }
+      remote          : {} # { remote : { branch: {} } }
+    }
+    for ref_name, ref of reflog
+      splited = ref_name.split "/"
+      if splited[0] == "HEAD" and splited.length == 1
+        refs.local["HEAD"] = ref
+      else if splited[0] == "refs"
+        switch splited[1]
+          when "heads"
+            refs.local[ splited[2] ] = ref
+          when "tags"
+            refs.tags[  splited[2] ]  = ref
+          when "remotes"
+            refs.remote[ splited[2] ] ?= {}
+            refs.remote[ splited[2] ][ splited[3] ] =ref
+          else
+            console.log "not recognized", ref_name
+      else
+        console.log "not recognized", ref_name
+    refs
+
+  update_status: ( refs )->
+    console.log refs
+    @cb.update_status? "tags", Object.keys(refs.tags).length
+    @cb.update_status? "local_branches", Object.keys(refs.local).length
+    @cb.update_status? "remote_repos", Object.keys(refs.remote).length
 
 class GitoeRepo
   constructor: ()->
@@ -118,11 +151,8 @@ class GitoeRepo
     to_fetch = Object.keys(@commits_to_fetch).length
     fetched  = Object.keys(@commits_fetched ).length
     @cb.fetched_commit?(to_fetch, fetched)
-    if to_fetch == 0
-      @fetch_alldone()
 
   ajax_fetch_status_success: (response)=>
-    refs_classified = @classify_ref response.refs
     for ref_name, ref of response.refs
       # dig commits with log
       # TODO also dig from annotated tags
@@ -131,35 +161,10 @@ class GitoeRepo
           sha1 = change[ field ]
           if not (@commits_fetched[ sha1 ] or @commits_ignored[ sha1 ])
             @commits_to_fetch[ sha1 ] = true
-    @cb.yield_reflogs?( refs_classified )
+    @cb.fetch_status? response
 
   ajax_error: (jqXHR)=>
     @cb.ajax_error? jqXHR
-
-  classify_ref: (reflog)-> # { refs_dict }
-    refs = {
-      tags            : {} # { name : sha1 }
-      local           : {} # { branch :  {}  }
-      remote          : {} # { remote : { branch: {} } }
-    }
-    for ref_name, ref of reflog
-      splited = ref_name.split "/"
-      if splited[0] == "HEAD" and splited.length == 1
-        refs.local["HEAD"] = ref
-      else if splited[0] == "refs"
-        switch splited[1]
-          when "heads"
-            refs.local[ splited[2] ] = ref
-          when "tags"
-            refs.tags[  splited[2] ]  = ref
-          when "remotes"
-            refs.remote[ splited[2] ] ?= {}
-            refs.remote[ splited[2] ][ splited[3] ] =ref
-          else
-            console.log "not recognized", ref_name
-      else
-        console.log "not recognized", ref_name
-    refs
 
 @exports ?= { gitoe: {} }
 exports.gitoe.GitoeRepo      = GitoeRepo
