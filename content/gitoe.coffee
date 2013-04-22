@@ -37,7 +37,7 @@ class GitoeUI
   update_status: (key,value)=>
     unless @selectors.status[key]
       throw "illigal key '#{key}'"
-    console.log key,value
+    # console.log key,value
     $(@selectors.status[key]).text(value)
 
   slideDown: (section)=>
@@ -133,8 +133,8 @@ class GitoeController
         }
     }
     historian.set_cb {
-      update_status:  control.update_status
-    
+      update_status: control.update_status
+      local_reflog : log
     }
 
 $ ->

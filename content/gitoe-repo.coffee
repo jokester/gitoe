@@ -43,15 +43,16 @@ class GitoeHistorian
 
   set_cb: (new_cb)->
     # cb:
-    #   update       : (key, num)
+    #   update_status   : (key, num)
+    #   local_reflog    : (logs)
+    #   remote_reflog   : ( remote_name, logs)
     for name, fun of new_cb
       @cb[name] = fun
 
-  analysis_repo: (repo)-> # [ change ]
-
   parse: ( refs_raw )->
-    refs = @classify refs_raw
+    refs = @classify (clone refs_raw)
     @update_status refs
+    @cb.local_reflog?( @parse_repo refs.local )
 
   classify: (reflog)-> # { refs_dict }
     refs = {
@@ -79,10 +80,33 @@ class GitoeHistorian
     refs
 
   update_status: ( refs )->
-    console.log refs
     @cb.update_status? "tags", Object.keys(refs.tags).length
     @cb.update_status? "local_branches", Object.keys(refs.local).length
     @cb.update_status? "remote_repos", Object.keys(refs.remote).length
+
+  parse_repo : (repo)->
+    # repo :: { ref: logs }
+    parsed_changes = []
+    repo.HEAD ?= { log: [] }
+
+    all_changes = []
+    for branch, content of repo
+      #if branch isnt "HEAD"
+      for change in content.log
+        change["branch"] = branch
+        all_changes.push {
+          time: change.committer.time
+          branch: branch
+          message: change.message
+          # orig: change
+        }
+    all_changes.sort (a,b)->( (a.time - b.time) or (b.branch - a.branch) )
+    console.log JSON.stringify all_changes
+    all_changes
+  split_head: (changes, head)->
+
+
+    all_changes
 
 class GitoeRepo
   constructor: ()->
