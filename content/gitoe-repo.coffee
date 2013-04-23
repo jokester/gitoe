@@ -8,6 +8,18 @@ exec_callback = (context,fun,args)->
 clone = (obj)->
   $.extend {}, obj
 
+strcmp = (str1, str2, pos = 0)->
+  c1 = str1.charAt( pos )
+  c2 = str2.charAt( pos )
+  if c1 < c2
+    return 1
+  else if c1 > c2
+    return -1
+  else if c1 == '' # which means c2 == ''
+    return 0
+  else
+    return strcmp(str1, str2, pos+1)
+
 class DAGtopo
   constructor: ()->
     @edges = {}  # { u: [v] } for edges < u → v >
@@ -86,27 +98,30 @@ class GitoeHistorian
 
   parse_repo : (repo)->
     # repo :: { ref: logs }
-    parsed_changes = []
-    repo.HEAD ?= { log: [] }
-
-    all_changes = []
+    reflog_head     = []
+    reflog_branches = []
     for branch, content of repo
-      #if branch isnt "HEAD"
+      if branch is 'HEAD'
+        cumulator = reflog_head
+      else
+        cumulator = reflog_branches
       for change in content.log
         change["branch"] = branch
-        all_changes.push {
+        cumulator.push {
           time: change.committer.time
           branch: branch
           message: change.message
+          oid_old: change.oid_old
+          oid_new: change.oid_new
           # orig: change
         }
-    all_changes.sort (a,b)->( (a.time - b.time) or (b.branch - a.branch) )
-    console.log JSON.stringify all_changes
-    all_changes
-  split_head: (changes, head)->
-
-
-    all_changes
+    reflog_branches.sort (a,b)->( a.time - b.time )
+    for change in reflog_branches
+      while reflog_head.length > 0 and reflog_head[0].time <= change.time
+        change.head ?= []
+        change.head.push reflog_head.shift()
+    console.log reflog_branches
+    []
 
 class GitoeRepo
   constructor: ()->
