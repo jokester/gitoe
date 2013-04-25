@@ -134,7 +134,7 @@ class GitoeController
     }
     historian.set_cb {
       update_status: control.update_status
-      local_reflog : log
+      reflog : log
     }
 
 $ ->

@@ -55,16 +55,17 @@ class GitoeHistorian
 
   set_cb: (new_cb)->
     # cb:
-    #   update_status   : (key, num)
-    #   local_reflog    : (logs)
-    #   remote_reflog   : ( remote_name, logs)
+    #   update_status : (key, num)
+    #   reflog        : (name, logs) where name=false means local repo
     for name, fun of new_cb
       @cb[name] = fun
 
   parse: ( refs_raw )->
     refs = @classify (clone refs_raw)
     @update_status refs
-    @cb.local_reflog?( @parse_repo refs.local )
+    @cb.reflog?( false, @parse_repo refs.local )
+    for remote, content of refs.remote
+      @cb.reflog?( remote, @parse_repo content )
 
   classify: (reflog)-> # { refs_dict }
     refs = {
@@ -120,8 +121,7 @@ class GitoeHistorian
       while reflog_head.length > 0 and reflog_head[0].time <= change.time
         change.head ?= []
         change.head.push reflog_head.shift()
-    console.log reflog_branches
-    []
+    reflog_branches
 
 class GitoeRepo
   constructor: ()->
