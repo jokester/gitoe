@@ -50,6 +50,18 @@ class DAGtopo
     return sorted
 
 class GitoeHistorian
+  @message_patterns = {
+    head: {
+      patterns: {
+        clone: /^clone: from (.*)/
+      }
+      actions : {
+        clone: (matched,change)->
+      }
+    }
+    branch: {
+    }
+  }
   constructor: ()->
     @cb               = {} # { name: fun }
 
@@ -118,10 +130,51 @@ class GitoeHistorian
         }
     reflog_branches.sort (a,b)->( a.time - b.time )
     for change in reflog_branches
+      change.head = []
       while reflog_head.length > 0 and reflog_head[0].time <= change.time
-        change.head ?= []
         change.head.push reflog_head.shift()
-    reflog_branches
+    @convert_repo reflog_branches
+
+  convert_repo: (reflog_branches)->
+    # convert reflogs to DSL
+    self = @
+    converted_repo = []
+    for change in reflog_branches
+      converted_change = @convert_change change
+      converted_change.head = change.head.map @convert_change
+      converted_repo.push converted_change
+    return converted_repo
+
+  convert_change: (change)=>
+    message = change.message
+    if change.branch is "HEAD"
+      @parse_message( message, change, GitoeHistorian.message_patterns.head )
+    else
+      @parse_message( message, change, GitoeHistorian.message_patterns.branch )
+
+  parse_message: ( message, change, rule )->
+    matched = @match_message message, rule.patterns
+    if matched.num isnt 1
+      [
+        "not recognized: "
+        { message: message }
+      ]
+    else
+      type =  matched.last
+      match = matched[type]
+      rule.actions[type]( match, change )
+
+  match_message : (message, patterns)-> # { case => matched }
+    matched = {
+      num  : 0
+      last : null
+    }
+    for type, regex of patterns
+      if match = regex.exec message
+        matched.last = type
+        matched[type] = match
+        matched.num++
+    matched
 
 class GitoeRepo
   constructor: ()->
