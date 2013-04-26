@@ -25,7 +25,7 @@ class GitoeUI
 
   constructor: (@selectors)->
     @cb = {}
-    for to_hide in [ "status", "refs", "history" ]
+    for to_hide in [ "status", "branches", "history" ]
       @section(to_hide).hide()
     @bind_events()
 
@@ -40,6 +40,16 @@ class GitoeUI
     # console.log key,value
     $(@selectors.status[key]).text(value)
 
+  update_reflog: (reflogs)=>
+    ul_branches = @elem "branches", "list"
+    ul_changes  = @elem "history", "list"
+    ul_branches.empty()
+    ul_changes.empty()
+    branch_inserted = {}
+    for repo_name, repo of reflogs
+      for change in repo
+        console.log change
+
   slideDown: (section)=>
     @section( section ).slideDown()
   slideUp: (section)->
@@ -51,12 +61,13 @@ class GitoeUI
   elem:    (section, name)->
     selector = [
       @selectors.here
+      ">"
       @selectors[section].here
       @selectors[section][name]
     ].join( " " )
     selected = $(selector)
     if selected.length != 1
-      throw "<#{selector}> gives #{selected.length} results"
+      throw "{#{selector}} gives #{selected.length} results"
     else
       selected
 
@@ -67,6 +78,16 @@ class GitoeUI
     btn_repo_open.on "click", ()->
       path = input_repo_path.val()
       cb.repo_open? path
+
+  li_for_change: (change)->
+    li = $("<li>")
+    li.append($("<span>").text("aaaa"))
+    li
+
+  li_for_branch: (branchname)->
+    li = $("<li>")
+    li.append($("<span>").text("aaaa"))
+    li
 
 class GitoeController
   constructor: (selectors)->
@@ -86,20 +107,20 @@ class GitoeController
     @canvas = new GitoeCanvas id_canvas, canvas_container, { }
 
   init_control: ( selectors_in_control )->
-    @control = new GitoeUI( selectors_in_control )
+    @ui = new GitoeUI( selectors_in_control )
 
   bind_events: ()->
     repo      = @repo
     canvas    = @canvas
     historian = @historian
-    control   = @control
+    ui   = @ui
 
     repo.set_cb {
       ajax_error      : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
       fetched_commit  : (to_fetch, fetched)->
-        control.update_status 'commits', fetched + to_fetch
+        ui.update_status 'commits', fetched + to_fetch
         flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
@@ -109,13 +130,13 @@ class GitoeController
       fetch_status    : (status)->
         repo.fetch_commits()
         historian.parse status.refs
-        control.update_status "path", status.path
+        ui.update_status "path", status.path
 
       yield_commit    : canvas.add_commit_async
 
     }
 
-    control.set_cb {
+    ui.set_cb {
       repo_open : (path)->
         flash "opening #{path}",false
         repo.open path, {
@@ -123,22 +144,22 @@ class GitoeController
             flash "error opening #{path}"
           success: (response)-> # opened
             flash "opened #{path}", 2000
-            control.slideUp "open"
+            ui.slideUp "open"
             repo.fetch_status {
               success: ()->
-                control.slideDown "status"
-                control.slideDown "refs"
-                control.slideDown "history"
+                ui.slideDown "status"
+                ui.slideDown "branches"
+                ui.slideDown "history"
             }
         }
     }
     historian.set_cb {
-      update_status: control.update_status
-      reflog : log
+      update_status: ui.update_status
+      reflog : ui.update_reflog
     }
 
 $ ->
-  selectors = {
+  selectors = { # todo move this to Controller class
     control:  {
       here: '#control'
       open:   {
@@ -155,12 +176,13 @@ $ ->
         remote_branches: '.remote.branches'
         remote_repos: '.remote.repos'
       }
-      refs: {
-        here           : '.refs'
+      branches: {
+        here           : '.branches'
+        list           : 'ul'
       }
       history: {
         here           : '.history'
-        list           : 'ul'
+        list           : 'ol'
       }
     }
     canvas:  {

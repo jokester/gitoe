@@ -50,16 +50,33 @@ class DAGtopo
     return sorted
 
 class GitoeHistorian
-  @message_patterns = {
-    head: {
-      patterns: {
-        clone: /^clone: from (.*)/
-      }
-      actions : {
-        clone: (matched,change)->
-      }
+  @message_patterns = {}
+  @message_patterns.head = {
+    patterns: {
+      clone: /^clone: from (.*)/
     }
-    branch: {
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+        {
+          type:    "dump"
+          change : change
+        }
+      ]
+    }
+  }
+  @message_patterns.branch = {
+    patterns: {
+      clone: /^clone: from (.*)/
+    }
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+        {
+          type:    "dump"
+          change : change
+        }
+      ]
     }
   }
   constructor: ()->
@@ -75,9 +92,15 @@ class GitoeHistorian
   parse: ( refs_raw )->
     refs = @classify (clone refs_raw)
     @update_status refs
-    @cb.reflog?( false, @parse_repo refs.local )
-    for remote, content of refs.remote
-      @cb.reflog?( remote, @parse_repo content )
+    reflog = {}
+    if refs.local
+      reflog["local"] = @parse_repo refs.local
+
+    for reponame, content of refs.remote
+      if reflog[reponame]
+        console.log "warning : duplicate reponame {#{reponame}}"
+      reflog[ reponame ] = @parse_repo content
+    @cb.reflog?( reflog )
 
   classify: (reflog)-> # { refs_dict }
     refs = {
@@ -141,8 +164,9 @@ class GitoeHistorian
     converted_repo = []
     for change in reflog_branches
       converted_change = @convert_change change
-      converted_change.head = change.head.map @convert_change
       converted_repo.push converted_change
+      if change.head
+        converted_change.head = change.head.map @convert_change
     return converted_repo
 
   convert_change: (change)=>
@@ -154,15 +178,19 @@ class GitoeHistorian
 
   parse_message: ( message, change, rule )->
     matched = @match_message message, rule.patterns
-    if matched.num isnt 1
-      [
-        "not recognized: "
-        { message: message }
-      ]
-    else
+    if matched.num is 1
       type =  matched.last
       match = matched[type]
       rule.actions[type]( match, change )
+    else
+      [
+        "not recognized message"
+        {
+          type:    "dump"
+          message: message
+          change : change
+        }
+      ]
 
   match_message : (message, patterns)-> # { case => matched }
     matched = {
