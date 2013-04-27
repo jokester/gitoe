@@ -41,14 +41,20 @@ class GitoeUI
     $(@selectors.status[key]).text(value)
 
   update_reflog: (reflogs)=>
+    console.log reflogs
     ul_branches = @elem "branches", "list"
     ul_changes  = @elem "history", "list"
     ul_branches.empty()
     ul_changes.empty()
-    branch_inserted = {}
-    for change in reflogs
-      console.log change
-      ul_changes.append  @li_for_change( change )
+    branches = {}
+    for repo_name, history of reflogs
+      for change in history
+        ul_changes.append change.to_li()
+        branch_id = "#{repo_name}####{change.branch}"
+        if not branches[ branch_id ]
+          li = @li_for_branch( repo_name, change.branch )
+          branches[ branch_id ] = li
+          ul_branches.append li
 
   slideDown: (section)=>
     @section( section ).slideDown()
@@ -86,34 +92,10 @@ class GitoeUI
       legend.on "click", do (list)->()->
         list.slideToggle()
 
-  li_for_change: ( change )->
-    elems = []
-    for part in change
-      switch typeof(part)
-        when "string"
-          elems.push $("<span>").text(part)
-        when "object"
-          switch part.constructor
-            when Array
-              console.log part
-              head = $("<ol>")
-              for sub_change in part
-                head.append @li_for_change( sub_change )
-              elems.push head
-              console.log head
-            when Object
-              switch part.type
-                when "dump"
-                  elems.push $("<span>").addClass("unknown").text(part.message)
-            else
-              console.log part
-        else
-          console.log part
-    $("<li>").append( elems ... )
-
-  li_for_branch: (branchname)->
+  li_for_branch: ( repo_name, branch )->
     li = $("<li>")
-    li.append($("<span>").text("aaaa"))
+    li.append( $("<span>").text(repo_name).addClass("repo-name") )
+    li.append( $("<span>").text(" / #{branch}").addClass("branch-name") )
     li
 
 class GitoeController
