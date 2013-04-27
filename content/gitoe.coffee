@@ -72,16 +72,31 @@ class GitoeUI
 
   bind_events: ()->
     cb              = @cb
+
     input_repo_path = @elem "open", "path"
     btn_repo_open   = @elem "open", "open"
     btn_repo_open.on "click", ()->
       path = input_repo_path.val()
       cb.repo_open? path
 
-  li_for_change: (change)->
-    li = $("<li>")
-    li.append($("<span>").text("aaaa"))
-    li
+    for region in [ "branches", "history", "status" ]
+      legend = @elem region, "legend"
+      list   = @elem region, "list"
+      legend.on "click", do (list)->()->
+        list.slideToggle()
+
+  li_for_change: ( change )->
+    elems = []
+    for part in change
+      switch typeof(part)
+        when "string"
+          elems.push $("<span>").text(part)
+        when "object"
+          console.log part
+        else
+          false
+          console.log typeof(part)
+    $("<li>").append( elems ... )
 
   li_for_branch: (branchname)->
     li = $("<li>")
@@ -168,6 +183,7 @@ $ ->
       }
       status: {
         here           : '.status'
+        list           : 'ul'
         path           : '.path'
         commits        : '.commits'
         tags           : '.tags'
@@ -177,10 +193,12 @@ $ ->
       }
       branches: {
         here           : '.branches'
+        legend         : 'legend'
         list           : 'ul'
       }
       history: {
         here           : '.history'
+        legend         : 'legend'
         list           : 'ol'
       }
     }
