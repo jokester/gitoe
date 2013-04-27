@@ -46,8 +46,9 @@ class GitoeUI
     ul_branches.empty()
     ul_changes.empty()
     branch_inserted = {}
-    for repo_name, content of reflogs
-      console.log repo_name, content
+    for change in reflogs
+      console.log change
+      ul_changes.append  @li_for_change( change )
 
   slideDown: (section)=>
     @section( section ).slideDown()
@@ -92,10 +93,22 @@ class GitoeUI
         when "string"
           elems.push $("<span>").text(part)
         when "object"
-          console.log part
+          switch part.constructor
+            when Array
+              console.log part
+              head = $("<ol>")
+              for sub_change in part
+                head.append @li_for_change( sub_change )
+              elems.push head
+              console.log head
+            when Object
+              switch part.type
+                when "dump"
+                  elems.push $("<span>").addClass("unknown").text(part.message)
+            else
+              console.log part
         else
-          false
-          console.log typeof(part)
+          console.log part
     $("<li>").append( elems ... )
 
   li_for_branch: (branchname)->

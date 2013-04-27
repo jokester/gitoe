@@ -49,93 +49,8 @@ class DAGtopo
           nodes_whose_in_degree_is_0.push to
     return sorted
 
-class GitoeHistorian
-  @message_patterns = {}
-  @message_patterns.head = {
-    patterns: {
-      clone: /^clone: from (.*)/
-    }
-    actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-        {
-          type:    "dump"
-          change : change
-        }
-      ]
-    }
-  }
-  @message_patterns.branch = {
-    patterns: {
-      clone: /^clone: from (.*)/
-    }
-    actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-        {
-          type:    "dump"
-          change : change
-        }
-      ]
-    }
-  }
-  constructor: ()->
-    @cb               = {} # { name: fun }
-
-  set_cb: (new_cb)->
-    # cb:
-    #   update_status : (key, num)
-    #   reflog        : (name, logs) where name=false means local repo
-    for name, fun of new_cb
-      @cb[name] = fun
-
-  parse: ( refs_raw )->
-    refs = @classify (clone refs_raw)
-    @update_status refs
-    reflog = []
-
-    for parsed_change in @parse_repo refs.local
-      parsed_change["repo"] = "local"
-      reflog.push parsed_change
-
-    for repo_name, content of refs.remote
-      for parsed_change in @parse_repo content
-        parsed_change["repo"] = repo_name
-        reflog.push parsed_change
-
-    @cb.reflog?( reflog )
-
-  classify: (reflog)-> # { refs_dict }
-    refs = {
-      tags            : {} # { name : sha1 }
-      local           : {} # { branch :  {}  }
-      remote          : {} # { remote : { branch: {} } }
-    }
-    for ref_name, ref of reflog
-      splited = ref_name.split "/"
-      if splited[0] == "HEAD" and splited.length == 1
-        refs.local["HEAD"] = ref
-      else if splited[0] == "refs"
-        switch splited[1]
-          when "heads"
-            refs.local[ splited[2] ] = ref
-          when "tags"
-            refs.tags[  splited[2] ]  = ref
-          when "remotes"
-            refs.remote[ splited[2] ] ?= {}
-            refs.remote[ splited[2] ][ splited[3] ] =ref
-          else
-            console.log "not recognized", ref_name
-      else
-        console.log "not recognized", ref_name
-    refs
-
-  update_status: ( refs )->
-    @cb.update_status? "tags", Object.keys(refs.tags).length
-    @cb.update_status? "local_branches", Object.keys(refs.local).length
-    @cb.update_status? "remote_repos", Object.keys(refs.remote).length
-
-  parse_repo : (repo)-> # [ changes ]
+class GitoeChange
+  @parse_repo : (repo)-> # [ changes ]
     # repo :: { ref: logs }
 
     # classify into HEAD / non-HEAD
@@ -149,14 +64,7 @@ class GitoeHistorian
         changes_in_branches
       for change in content.log
         change["branch"] = branch
-        cumulator.push {
-          time:    change.committer.time
-          branch:  branch
-          message: change.message
-          oid_old: change.oid_old
-          oid_new: change.oid_new
-          raw:     change
-        }
+        cumulator.push change
 
     # group changes in HEAD into non-HEAD, by commit time
     # TODO recognize not-on-branch changes
@@ -171,14 +79,38 @@ class GitoeHistorian
       parsed_change = @parse_change(change)
       parsed_change.head = change.head.map @parse_change
       parsed_repo.push(parsed_change)
-    return parsed_repo
 
+    parsed_repo
+
+  @message_patterns = {}
+  @message_patterns.head = {
+    patterns: {
+      clone: /^clone: from (.*)/
+    }
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+      ]
+    }
+  }
+  @message_patterns.branch = {
+    patterns: {
+      clone: /^clone: from (.*)/
+    }
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+      ]
+    }
+  }
+
+  constructor: ( change_in_branch, changes_in_head )->
   parse_change: (change)=>
     message = change.message
     if change.branch is "HEAD"
-      rule = GitoeHistorian.message_patterns.head
+      rule = GitoeChange.message_patterns.head
     else
-      rule = GitoeHistorian.message_patterns.branch
+      rule = GitoeChange.message_patterns.branch
 
     matched = @match_message message, rule.patterns
     if matched.num is 1
@@ -187,7 +119,6 @@ class GitoeHistorian
       rule.actions[type]( match, change )
     else
       [
-        "not recognized message"
         {
           type:    "dump"
           message: message
@@ -206,6 +137,66 @@ class GitoeHistorian
         matched[type] = match
         matched.num++
     matched
+
+  to_dom : ()->
+
+class GitoeHistorian
+  constructor: ()->
+    @cb               = {} # { name: fun }
+
+  set_cb: (new_cb)->
+    # cb:
+    #   update_status : (key, num)
+    #   reflog        : (name, logs) where name=false means local repo
+    for name, fun of new_cb
+      @cb[name] = fun
+
+  parse: ( refs_raw )-> # [ changes of all repos ]
+    repos = @classify (clone refs_raw)
+    @update_status repos
+
+    changes = []
+
+    for change in GitoeChange.parse_repo repos.local
+      change["repo"] = "local"
+      changes.push change
+
+    for repo_name, repo of repos.remote
+      for change in GitoeChange.parse_repo repo
+        change["repo"] = repo_name
+        changes.push parsed_change
+
+    @cb.reflog?( changes )
+
+  classify: (reflog_raw)-> # { reflog classified by repo }
+    repos = {
+      tags            : {} # { name : sha1 }
+      local           : {} # { branch :  {}  }
+      remote          : {} # { remote : { branch: {} } }
+    }
+    for ref_name, reflog of reflog_raw
+      splited = ref_name.split "/"
+      if splited[0] == "HEAD" and splited.length == 1
+        repos.local["HEAD"] = reflog
+      else if splited[0] == "refs"
+        switch splited[1]
+          when "heads"
+            repos.local[ splited[2] ] = reflog
+          when "tags"
+            repos.tags[  splited[2] ]  = reflog
+          when "remotes"
+            repos.remote[ splited[2] ] ?= {}
+            repos.remote[ splited[2] ][ splited[3] ] =reflog
+          else
+            console.log "not recognized", ref_name
+      else
+        console.log "not recognized", ref_name
+    repos
+
+  update_status: ( refs )->
+    @cb.update_status? "tags", Object.keys(refs.tags).length
+    @cb.update_status? "local_branches", Object.keys(refs.local).length
+    @cb.update_status? "remote_repos", Object.keys(refs.remote).length
 
 class GitoeRepo
   constructor: ()->
