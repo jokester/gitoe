@@ -17,12 +17,12 @@ task :production do
   sh "bundle exec gitoe"
 end
 
-desc "nanoc watch"
+desc "watch and re-compile with guard"
 task :watch do
-  sh "bundle exec nanoc watch"
+  sh "bundle exec guard"
 end
 
-desc "nanoc compile"
+desc "compile with nanoc"
 task :compile do
   sh "bundle exec nanoc"
 end

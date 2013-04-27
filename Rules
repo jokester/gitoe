@@ -45,5 +45,3 @@ route '*' do
     end
   end
 end
-
-layout '*', :erb
