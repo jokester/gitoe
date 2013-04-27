@@ -46,9 +46,8 @@ class GitoeUI
     ul_branches.empty()
     ul_changes.empty()
     branch_inserted = {}
-    for repo_name, repo of reflogs
-      for change in repo
-        console.log change
+    for repo_name, content of reflogs
+      console.log repo_name, content
 
   slideDown: (section)=>
     @section( section ).slideDown()

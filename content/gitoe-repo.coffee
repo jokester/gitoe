@@ -92,14 +92,17 @@ class GitoeHistorian
   parse: ( refs_raw )->
     refs = @classify (clone refs_raw)
     @update_status refs
-    reflog = {}
-    if refs.local
-      reflog["local"] = @parse_repo refs.local
+    reflog = []
 
-    for reponame, content of refs.remote
-      if reflog[reponame]
-        console.log "warning : duplicate reponame {#{reponame}}"
-      reflog[ reponame ] = @parse_repo content
+    for parsed_change in @parse_repo refs.local
+      parsed_change["repo"] = "local"
+      reflog.push parsed_change
+
+    for repo_name, content of refs.remote
+      for parsed_change in @parse_repo content
+        parsed_change["repo"] = repo_name
+        reflog.push parsed_change
+
     @cb.reflog?( reflog )
 
   classify: (reflog)-> # { refs_dict }
@@ -132,51 +135,51 @@ class GitoeHistorian
     @cb.update_status? "local_branches", Object.keys(refs.local).length
     @cb.update_status? "remote_repos", Object.keys(refs.remote).length
 
-  parse_repo : (repo)->
+  parse_repo : (repo)-> # [ changes ]
     # repo :: { ref: logs }
-    reflog_head     = []
-    reflog_branches = []
+
+    # classify into HEAD / non-HEAD
+    changes_in_head     = []
+    changes_in_branches = []
     for branch, content of repo
+      cumulator = \
       if branch is 'HEAD'
-        cumulator = reflog_head
+        changes_in_head
       else
-        cumulator = reflog_branches
+        changes_in_branches
       for change in content.log
         change["branch"] = branch
         cumulator.push {
-          time: change.committer.time
-          branch: branch
+          time:    change.committer.time
+          branch:  branch
           message: change.message
           oid_old: change.oid_old
           oid_new: change.oid_new
-          # orig: change
+          raw:     change
         }
-    reflog_branches.sort (a,b)->( a.time - b.time )
-    for change in reflog_branches
+
+    # group changes in HEAD into non-HEAD, by commit time
+    # TODO recognize not-on-branch changes
+    changes_in_branches.sort (a,b)->( a.time - b.time )
+    for change in changes_in_branches
       change.head = []
-      while reflog_head.length > 0 and reflog_head[0].time <= change.time
-        change.head.push reflog_head.shift()
-    @convert_repo reflog_branches
+      while changes_in_head.length > 0 and changes_in_head[0].time <= change.time
+        change.head.push changes_in_head.shift()
 
-  convert_repo: (reflog_branches)->
-    # convert reflogs to DSL
-    self = @
-    converted_repo = []
-    for change in reflog_branches
-      converted_change = @convert_change change
-      converted_repo.push converted_change
-      if change.head
-        converted_change.head = change.head.map @convert_change
-    return converted_repo
+    parsed_repo = []
+    for change in changes_in_branches
+      parsed_change = @parse_change(change)
+      parsed_change.head = change.head.map @parse_change
+      parsed_repo.push(parsed_change)
+    return parsed_repo
 
-  convert_change: (change)=>
+  parse_change: (change)=>
     message = change.message
     if change.branch is "HEAD"
-      @parse_message( message, change, GitoeHistorian.message_patterns.head )
+      rule = GitoeHistorian.message_patterns.head
     else
-      @parse_message( message, change, GitoeHistorian.message_patterns.branch )
+      rule = GitoeHistorian.message_patterns.branch
 
-  parse_message: ( message, change, rule )->
     matched = @match_message message, rule.patterns
     if matched.num is 1
       type =  matched.last
