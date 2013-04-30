@@ -2,7 +2,8 @@
 %html(lang='en')
   %head
     %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css")
-    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.min.css")
+    -# %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.min.css")
+    -# %link(rel="stylesheet" type="text/css" href="reset.css")
     %link(rel="stylesheet" type="text/css" href="style.css")
     %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
     %script(src="jquery/jquery.scrollTo.min.js")
@@ -17,75 +18,16 @@
         if /\?dev$/.test location.href
           setTimeout location.reload.bind(location), 1000
   %body
-    .d-table#all
-      .d-trow
-        .d-cell#col1
-          .d-table
-            .d-trow#banner-container
-              .d-cell
-                #banner
-                  %h1 gitoe
-            .d-trow#control-container
-              .d-cell
-                #control
-                  %ol
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-                    %li control
-        .d-cell#col2
-          .d-table
-            .d-trow#graph-container
-              .d-cell
-                #graph
-            .d-trow#about-container
-              .d-cell
-                #about
-                  powered by aaaa
+    %table.full#all
+      %tr
+        %td.col1(rowspan=1)
+          #banner.min
+            banner
+        %td.col2(rowspan=2)
+          graph
+      %tr
+        %td.col1(rowspan=2)
+          control
+      %tr
+        %td.col2(rowspan=1).min
+          about
