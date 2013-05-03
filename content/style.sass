@@ -1,29 +1,49 @@
-#col1, #col2
-  padding-top: 5px
-  height: 600px
+body, html
+  height: 100%
 
-#banner
+.d-table
   width: 100%
-  padding: 5px
+  height: 100%
+  display: table
+  table-layout: fixed
+.d-trow
+  display: table-row
+.d-cell
+  display: table-cell
+
+.d-table, .d-trow, .d-cell
+  position: relative
+
+#col1
+  width: 38%
+  background-color: #eff
+
+#col2
+  background-color: #ffe
+
+#banner-container
+  height: 0px
+  background-color: #cff
+
+#about-container
+  height: 0px
+  background-color: #ffa
+
+#control
+  overflow-y: scroll
+  height: 100%
+
+#graph-container
+  position: absolute
+#graph
+  overflow: scroll
 
 #flash
   position: absolute
 #flash:empty
   display: none
 
-#canvas-container
-  overflow: scroll
-  width: 800px
-  height: 700px
-  #graph
-    background-color: #eee
-    width: 0px
-    height: 0px
-    margin: 10px 0px
-
 .control
-  min-height: 600px
-  max-height: 600px
   overflow-y: scroll
   li
     list-style: none
