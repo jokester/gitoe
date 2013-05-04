@@ -1,65 +1,38 @@
 !!!5
 %html(lang='en')
   %head
-    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css")
-    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.min.css")
+    %link(rel="stylesheet" type="text/css" href="reset.css")
     %link(rel="stylesheet" type="text/css" href="style.css")
     %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
     %script(src="jquery/jquery.scrollTo.min.js")
     %script(src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js")
-    %script(src="/bootstrap/js/bootstrap.min.js")
-    %script(src="gitoe-repo.js")
-    %script(src="gitoe-draw.js")
-    %script(src="gitoe.js")
+    -# %script(src="gitoe-repo.js")
+    -# %script(src="gitoe-draw.js")
+    -# %script(src="gitoe.js")
     %title gitoe
+    :coffee
+      $ ->
+        if /\?dev$/.test location.href
+          setTimeout location.reload.bind(location), 1000
   %body
-    #all.container-fluid
-      #container.row-fluid
-
-        #col1.span4
-          %span#flash.alert
-          #banner
-            %h1 gitoe
-          #control.control
-            .open
-              %legend open repository
-              %form.form-inline
-                / TODO empty here
-                %input.path(placeholder="path of git repo" type="text" value="/home/mono/gitoe")
-                %a.btn.open-btn
-                  %i.icon-folder-open
-            .status
-              %legend status
+    %table#all
+      %tr.firstrow
+        %td.col1#banner(rowspan=1)
+          %h1 gitoe
+        %td.col2(rowspan=2)
+          .container
+            #graph.big
+      %tr
+        %td.col1(rowspan=2)
+          .container
+            #control.big
               %ul
-                %li
-                  %span.path.badge.badge-success ???
-                / TODO a refresh-repo button around here
-                %br
-                %li
-                  %span.tags.badge.badge-info ?
-                  %span tags
-                %li
-                  %span.remote.repos.badge.badge-info ?
-                  %span remote repos
-                %li
-                  %span.local.branches.badge.badge-info ?
-                  %span local branches
-                %li
-                  %span.commits.badge.badge-info ?
-                  %span commits
-            .branches
-              %legend branches
-              %ul.list-branches
-            .history
-              %legend history
-              %ol
-                %li 1
-                %li 1
-                %li 1
-                %li 1
-                %li 1
-                %li last
-
-        #col2.span8
-          #canvas-container
-            #graph
+                %li aaaaa
+      %tr.lastrow
+        %td.col2#about(rowspan=1)
+          powered by
+          %a(href='#') jquery
+          ,
+          %a(href='#') rugged
+          , and
+          %a(href='#') me
