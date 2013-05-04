@@ -12,7 +12,7 @@ body, html
   background-color: #ffe
 
 #banner
-  background-color: #aff
+  background-color: lightblue
   h1
     padding: 10px 20px
     font-size: 50px
@@ -39,13 +39,14 @@ body, html
   td
     vertical-align: top
 
-#flash
-  position: absolute
-#flash:empty
-  display: none
+#control
+  legend
+    font-size: 20px
+  >div
+    background-color: #eee
+    padding: 15px
+    margin: 10px 0px
 
-.control
-  overflow-y: scroll
   li
     list-style: none
     .unknown
@@ -54,6 +55,11 @@ body, html
     .badge
       text-align: center
       min-width : 4em
+
+#flash
+  position: absolute
+#flash:empty
+  display: none
 
 ::-webkit-scrollbar
   width:  12px
