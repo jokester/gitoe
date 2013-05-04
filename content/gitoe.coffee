@@ -85,6 +85,7 @@ class GitoeUI
     btn_repo_open.on "click", ()->
       path = input_repo_path.val()
       cb.repo_open? path
+      false
 
     for region in [ "branches", "history", "status" ]
       legend = @elem region, "legend"
