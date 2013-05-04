@@ -1,23 +1,44 @@
 body, html
   height: 100%
 
-#all
-
-.full
-  width: 90%
-  height: 90%
+.firstrow, .lastrow
+  height: 0px
 
 .col1
+  width: 38.2%
   background-color: #eff
 
 .col2
   background-color: #ffe
 
-#graph
-  background-color: blue
+#banner
+  background-color: #aff
+  h1
+    padding: 10px 20px
+    font-size: 50px
 
-.min
-  height: 0px
+#about
+  background-color: #ffa
+
+#banner, #about, #control
+  padding: 15px
+
+.container
+  overflow: scroll
+  width: 100%
+  height: 100%
+
+.big // pretend to be big
+  width: 10000px
+  height: 10000px
+
+#all
+  table-layout: fixed
+  width:  100%
+  height: 100%
+  td
+    vertical-align: top
+
 #flash
   position: absolute
 #flash:empty
@@ -34,17 +55,17 @@ body, html
       text-align: center
       min-width : 4em
 
-// ::-webkit-scrollbar
-//   width: 10px
-//   height: 10px
-// ::-webkit-scrollbar-track
-//   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3)
-//   -webkit-border-radius: 10px
-//   border-radius: 10px
-// ::-webkit-scrollbar-thumb
-//   -webkit-border-radius: 10px
-//   border-radius: 10px
-//   background: rgba(255,0,0,0.8)
-//   //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5)
-// //::-webkit-scrollbar-thumb:window-inactive
-//     background: rgba(255,0,0,0.4)
+::-webkit-scrollbar
+  width:  12px
+  height: 12px
+::-webkit-scrollbar-track
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3)
+  -webkit-border-radius: 10px
+  border-radius: 10px
+::-webkit-scrollbar-thumb
+  -webkit-border-radius: 10px
+  border-radius: 10px
+  background: rgba(255,0,0,0.8)
+  //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5)
+//::-webkit-scrollbar-thumb:window-inactive
+    background: rgba(255,0,0,0.4)

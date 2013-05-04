@@ -1,14 +1,11 @@
 !!!5
 %html(lang='en')
   %head
-    %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css")
-    -# %link(rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.min.css")
-    -# %link(rel="stylesheet" type="text/css" href="reset.css")
+    %link(rel="stylesheet" type="text/css" href="reset.css")
     %link(rel="stylesheet" type="text/css" href="style.css")
     %script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js")
     %script(src="jquery/jquery.scrollTo.min.js")
     %script(src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js")
-    %script(src="/bootstrap/js/bootstrap.min.js")
     -# %script(src="gitoe-repo.js")
     -# %script(src="gitoe-draw.js")
     -# %script(src="gitoe.js")
@@ -18,16 +15,24 @@
         if /\?dev$/.test location.href
           setTimeout location.reload.bind(location), 1000
   %body
-    %table.full#all
-      %tr
-        %td.col1(rowspan=1)
-          #banner.min
-            banner
+    %table#all
+      %tr.firstrow
+        %td.col1#banner(rowspan=1)
+          %h1 gitoe
         %td.col2(rowspan=2)
-          graph
+          .container
+            #graph.big
       %tr
         %td.col1(rowspan=2)
-          control
-      %tr
-        %td.col2(rowspan=1).min
-          about
+          .container
+            #control.big
+              %ul
+                %li aaaaa
+      %tr.lastrow
+        %td.col2#about(rowspan=1)
+          powered by
+          %a(href='#') jquery
+          ,
+          %a(href='#') rugged
+          , and
+          %a(href='#') me
