@@ -50,33 +50,6 @@ class DAGtopo
     return sorted
 
 class GitoeChange
-  @parse_repo : (repo)-> # [ changes ]
-    # repo :: { ref: logs }
-    # classify into HEAD / non-HEAD
-    changes_in_head     = []
-    changes_in_branches = []
-    for branch, content of repo
-      cumulator = \
-      if branch is 'HEAD'
-        changes_in_head
-      else
-        changes_in_branches
-      for change in content.log
-        change["branch"] = branch
-        cumulator.push change
-
-    parsed_repo = []
-    changes_in_branches.sort (a,b)->( a.committer.time - b.committer.time )
-    # group changes in HEAD into non-HEAD, by commit time
-    # TODO recognize not-on-branch changes
-    for from_branch in changes_in_branches
-      from_head = []
-      while changes_in_head.length > 0 and changes_in_head[0].committer.time <= from_branch.committer.time
-        from_head.push changes_in_head.shift()
-      parsed_repo.push new @( from_branch, from_head )
-
-    parsed_repo
-
   @message_patterns = {}
   @message_patterns.head = {
     patterns: {
@@ -99,81 +72,45 @@ class GitoeChange
     }
   }
 
-  constructor: ( change_from_branch, changes_from_head )->
-    @branch = change_from_branch.branch
-    @self = @parse_change( change_from_branch, )
-    @children = \
-    (@parse_change(change, false) for change in changes_from_head)
+  extract_branches: ( repo_name, @list_branches, @list_changes )->
+    console.log "extract to", list_branches
+    # TODO fill in here
 
-  parse_change: (change, is_branch)->
-    message = change.message
-    if is_branch
-      rule = GitoeChange.message_patterns.branch
-    else
-      rule = GitoeChange.message_patterns.head
+  constructor: ( repo, name )->
+    # repo :: { ref: logs }
 
-    matched = @match_message message, rule.patterns
-    if matched.num is 1
-      type =  matched.last
-      match = matched[type]
-      rule.actions[type]( match, change )
-    else
-      [
-        {
-          type:    "dump"
-          message: message
-          change : change
-        }
-      ]
+    # classify into HEAD / non-HEAD
+    changes_in_head     = []
+    changes_in_branches = []
+    for branch, content of repo
+      if branch is 'HEAD'
+        cumulator = changes_in_head
+      else
+        cumulator = changes_in_branches
+      for change in content.log
+        change["branch"] = branch
+        cumulator.push change
 
-  match_message : (message, patterns)-> # { case => matched }
-    matched = {
-      num  : 0
-      last : null
-    }
-    for type, regex of patterns
-      if match = regex.exec message
-        matched.last = type
-        matched[type] = match
-        matched.num++
-    matched
+    changes = []
+    changes_in_branches.sort (a,b)->( a.committer.time - b.committer.time )
+    # group changes in HEAD into non-HEAD, by commit time
+    # TODO recognize not-on-branch changes
+    for from_branch in changes_in_branches
+      from_head = []
+      while changes_in_head.length > 0 and changes_in_head[0].committer.time <= from_branch.committer.time
+        from_head.push changes_in_head.shift()
+      changes.push @group_change(from_branch, from_head)
 
-  to_li : ()->
-    outer = $("<li>")
-    for elem in @convert_elem @self
-      outer.append elem
-    if @children.length > 0
-      toggle = $("<i>").addClass("icon-plus")
-      inner = $("<ol>").hide()
-      for change in @children
-        for elem in @convert_elem change
-          inner.append elem
-      toggle.on "click", ()->
-        toggle.toggleClass("icon-plus icon-minus")
-        inner.slideToggle()
-      outer.prepend toggle
-      outer.append inner
-    else
-      toggle = $("<i>").addClass("icon-minus")
-      # outer.prepend toggle
-    outer
+    @changes = changes
+    @cb = {}
 
-  convert_elem: (change)->
-    elems = []
-    for part in change
-      switch typeof(part)
-        when "string"
-          elems.push $("<span>").text(part)
-        when "object"
-          switch part.type
-            when "dump"
-              elems.push $("<span>").addClass("unknown").text(part.message)
-            else
-              console.log part
-        else
-          console.log part
-    elems
+  set_cb: (new_cb)->
+    #   repo_open     : ( path )->
+    for name, fun of new_cb
+      @cb[name] = fun
 
+  group_change: (change_in_branch, changes_in_head)->
+    {}
 
 class GitoeHistorian
   constructor: ()->
@@ -192,14 +129,9 @@ class GitoeHistorian
 
     changes = {} # { (branchname | local) : reflogs }
 
-    for change in GitoeChange.parse_repo repos.local
-      changes[ "local" ] ?= []
-      changes[ "local" ].push change
-
+    changes[ "local" ] = new GitoeChange(repos.local)
     for repo_name, repo of repos.remote
-      for change in GitoeChange.parse_repo repo
-        changes[ repo_name ] ?= []
-        changes[ repo_name ].push change
+      changes[ repo_name ] = new GitoeChange(repo)
 
     @cb.reflog?( changes )
 

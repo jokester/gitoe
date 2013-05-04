@@ -42,19 +42,15 @@ class GitoeUI
 
   update_reflog: (reflogs)=>
     console.log reflogs
-    ul_branches = @elem "branches", "list"
-    ul_changes  = @elem "history", "list"
-    ul_branches.empty()
-    ul_changes.empty()
-    branches = {}
+    cb = @cb
+    list_branches = @elem "branches", "list"
+    list_changes  = @elem "history",  "list"
+    list_changes.empty()
     for repo_name, history of reflogs
-      for change in history
-        ul_changes.append change.to_li()
-        branch_id = "#{repo_name}####{change.branch}"
-        if not branches[ branch_id ]
-          li = @li_for_branch( repo_name, change.branch )
-          branches[ branch_id ] = li
-          ul_branches.append li
+      history.extract_branches( repo_name, list_branches, list_changes )
+      history.set_cb {
+        show_change : cb.show_change
+      }
 
   slideDown: (section)=>
     @section( section ).slideDown()
@@ -92,12 +88,6 @@ class GitoeUI
       list   = @elem region, "list"
       legend.on "click", do (list)->()->
         list.slideToggle()
-
-  li_for_branch: ( repo_name, branch )->
-    li = $("<li>")
-    li.append( $("<span>").text(repo_name).addClass("repo-name") )
-    li.append( $("<span>").text(" / #{branch}").addClass("branch-name") )
-    li
 
 class GitoeController
   constructor: (selectors)->
@@ -162,6 +152,8 @@ class GitoeController
                 ui.slideDown "history"
             }
         }
+      show_change: (fun)->
+        fun( canvas )
     }
     historian.set_cb {
       update_status: ui.update_status
