@@ -96,8 +96,8 @@ class DAGLayout
 class GitoeCanvas
   @CONST  : {
     canvas: {
-      width : 600
-      height: 1200
+      width : 100
+      height: 100
     }
     padding_left: 60
     padding_top : 40
@@ -129,7 +129,7 @@ class GitoeCanvas
     @constant = clone GitoeCanvas.CONST
     @init_canvas(id_canvas)
     @objs = {}    # { sha1 : canvas objs }
-    @div = $(div)
+    @div = $("##{id_canvas}").parent()
 
   add_commit_async: (commit)=>
     setTimeout( @add_commit.bind( @, commit )  , 500 )
@@ -155,13 +155,7 @@ class GitoeCanvas
     commit_box = @draw_commit_box(coord)
     text = @draw_commit_text(coord, sha1)
     paths = @draw_paths(coord, parents)
-    need_focus = false
-    if coord.left > @canvas_size.width - 500
-      @canvas_inc_width()
-      need_focus = true
-    if coord.top > @canvas_size.height - 500
-      @canvas_inc_height()
-      need_focus = true
+    need_focus = !!(@canvas_inc_height(coord.top) + @canvas_inc_width(coord.left) )
     if need_focus
       @focus(coord)
     @objs[sha1] = {
@@ -243,8 +237,8 @@ class GitoeCanvas
     a*ratio + b*(1-ratio)
   focus: (coord)->
     @div.scrollTo {
-      left: coord.left - 500
-      top : coord.top  - 300
+      left: coord.left
+      top : coord.top
     }
 
   init_canvas: (id_canvas)->
@@ -255,12 +249,20 @@ class GitoeCanvas
       @canvas_size.height
     )
 
-  canvas_inc_width: ()->
-    @canvas_size.width += 500
-    @canvas_resize()
-  canvas_inc_height: ()->
-    @canvas_size.height *= 1.1
-    @canvas_resize()
+  canvas_inc_width: (left)->
+    if left + @constant.outer_width > @canvas_size.width
+      @canvas_size.width += 1*@constant.outer_width
+      @canvas_resize()
+      true
+    else
+      false
+  canvas_inc_height: (top)->
+    if top + @constant.outer_height > @canvas_size.height
+      @canvas_size.height += 1*@constant.outer_height
+      @canvas_resize()
+      true
+    else
+      false
   canvas_resize: ()->
     @canvas.setSize(
       @canvas_size.width,
