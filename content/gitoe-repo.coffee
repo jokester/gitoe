@@ -20,7 +20,34 @@ strcmp = (str1, str2, pos = 0)->
   else
     return strcmp(str1, str2, pos+1)
 
+class OrderedSet
+  # a FIFO queue while guanantees uniqueness
+  constructor: ()->
+    @elems = []
+    @hash  = {}
+  push: (new_elem)->
+    if not @hash[new_elem]
+      @hash[new_elem] = true
+      @elems.push new_elem
+      true
+    else
+      false
+  length: ()->
+    @elems.length
+  shift: ()->
+    throw "empty" unless @elems.length > 0
+    ret = @elems.shift()
+    delete @hash[ret]
+    ret
+
 class DAGtopo
+  # TODO
+  #   modify to a persistent object, for reverse-order toposort
+  #   respond to
+  #     #depth()
+  #     #add_edge(u,v)
+  #   callback on
+  #     yield: (commit,layer)
   constructor: ()->
     @edges = {}  # { u: [v] } for edges < u → v >
 
@@ -50,33 +77,12 @@ class DAGtopo
     return sorted
 
 class GitoeChange
-  @message_patterns = {}
-  @message_patterns.head = {
-    patterns: {
-      clone: /^clone: from (.*)/
-    }
-    actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-      ]
-    }
-  }
-  @message_patterns.branch = {
-    patterns: {
-      clone: /^clone: from (.*)/
-    }
-    actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-      ]
-    }
-  }
-
+  # changes in ONE repo
   extract_branches: ( repo_name, @list_branches, @list_changes )->
     console.log "extract to", list_branches
     # TODO fill in here
 
-  constructor: ( repo, name )->
+  constructor: ( repo )->
     # repo :: { ref: logs }
 
     # classify into HEAD / non-HEAD
@@ -112,48 +118,63 @@ class GitoeChange
   group_change: (change_in_branch, changes_in_head)->
     {}
 
+  @message_patterns = {}
+  @message_patterns.head = {
+    patterns: {
+      clone: /^clone: from (.*)/
+    }
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+      ]
+    }
+  }
+  @message_patterns.branch = {
+    patterns: {
+      clone: /^clone: from (.*)/
+    }
+    actions : {
+      clone: (matched,change)->[
+        "clone from #{matched[1]}"
+      ]
+    }
+  }
+
 class GitoeHistorian
   constructor: ()->
     @cb               = {} # { name: fun }
 
   set_cb: (new_cb)->
     # cb:
-    #   update_status : (key, num)
-    #   reflog        : (name, logs) where name=false means local repo
+    #   update_status : (key, text)
+    #   update_repo   : (repo, { branch: [changes] } )
     for name, fun of new_cb
       @cb[name] = fun
 
-  parse: ( refs_raw )-> # [ changes of all repos ]
-    repos = @classify (clone refs_raw)
+  parse: ( refs )-> # [ changes of all repos ]
+    repos = @classify(clone refs)
+    @update_status( refs )
     @update_status repos
 
-    changes = {} # { (branchname | local) : reflogs }
-
-    changes[ "local" ] = new GitoeChange(repos.local)
-    for repo_name, repo of repos.remote
-      changes[ repo_name ] = new GitoeChange(repo)
-
-    @cb.reflog?( changes )
+    for repo_name, content of repos
+      change = new GitoeChange(repo, content)
+      @cb.update_repo?( repo_name, change.parse())
 
   classify: (reflog_raw)-> # { reflog classified by repo }
-    repos = {
-      tags            : {} # { name : sha1 }
-      local           : {} # { branch :  {}  }
-      remote          : {} # { remote : { branch: {} } }
-    }
+    repos = { local: {} }
     for ref_name, reflog of reflog_raw
       splited = ref_name.split "/"
       if splited[0] == "HEAD" and splited.length == 1
         repos.local["HEAD"] = reflog
       else if splited[0] == "refs"
         switch splited[1]
-          when "heads"
+          when "heads"   # refs/heads/<branch>
             repos.local[ splited[2] ] = reflog
-          when "tags"
-            repos.tags[  splited[2] ]  = reflog
-          when "remotes"
-            repos.remote[ splited[2] ] ?= {}
-            repos.remote[ splited[2] ][ splited[3] ] =reflog
+          when "remotes" # refs/remotes/<repo>/<branch>
+            repos[ splited[2] ] ?= {}
+            repos[ splited[2] ][ splited[3] ] =reflog
+          when "tags"    # refs/tags/<tag>
+            # do nothing
           else
             console.log "not recognized", ref_name
       else
@@ -161,11 +182,16 @@ class GitoeHistorian
     repos
 
   update_status: ( refs )->
+    # TODO change
+    return false
     @cb.update_status? "tags", Object.keys(refs.tags).length
     @cb.update_status? "local_branches", Object.keys(refs.local).length
     @cb.update_status? "remote_repos", Object.keys(refs.remote).length
 
 class GitoeRepo
+  # TODO
+  #   queue commits with OrderedSet
+  #   reverse-toposort with DAGtopo
   constructor: ()->
     @commits_to_fetch = {} # { sha1: true }
     @commits_fetched  = {} # { sha1: commit }
