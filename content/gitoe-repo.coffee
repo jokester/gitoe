@@ -21,7 +21,7 @@ strcmp = (str1, str2, pos = 0)->
     return strcmp(str1, str2, pos+1)
 
 class OrderedSet
-  # a FIFO queue while guanantees uniqueness
+  # a FIFO queue while guarantees uniqueness
   constructor: ()->
     @elems = []
     @hash  = {}
