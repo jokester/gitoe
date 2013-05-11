@@ -41,16 +41,16 @@ class GitoeUI
     $(@selectors.status[key]).text(value)
 
   update_reflog: (reflogs)=>
-    console.log reflogs
     cb = @cb
     list_branches = @elem "branches", "list"
     list_changes  = @elem "history",  "list"
+    list_branches.empty()
     list_changes.empty()
-    for repo_name, history of reflogs
-      history.extract_branches( repo_name, list_branches, list_changes )
-      history.set_cb {
-        show_change : cb.show_change
-      }
+    for repo_name, changes of reflogs
+      console.log changes
+      list_changes.append changes
+
+    console.log reflogs
 
   slideDown: (section)=>
     @section( section ).slideDown()
@@ -157,7 +157,7 @@ class GitoeController
     }
     historian.set_cb {
       update_status: ui.update_status
-      reflog : ui.update_reflog
+      update_reflog: ui.update_reflog
     }
 
 $ ->

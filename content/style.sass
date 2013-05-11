@@ -5,7 +5,7 @@ body, html
   height: 0px
 
 .col1
-  width: 38.2%
+  width: 45%
   background-color: #eff
 
 .col2
@@ -51,6 +51,27 @@ body, html
     margin: 10px 0px
 
   li
+    span.repo_name,
+    span.ref_name,
+    span.sha1_commit,
+    span.git_command,
+    span.comment
+      display: inline-block
+      font-family: monospace
+    span.repo_name
+      background-color: yellow
+    span.ref_name
+      background-color: lightblue
+    span.sha1_commit
+      background-color: pink
+      cursor: crosshair
+      width: 5em
+      overflow: hidden
+    span.git_command
+      background-color: lightgreen
+    span.comment
+      font-size: 0.8em
+
     list-style: none
     .unknown
       color: red

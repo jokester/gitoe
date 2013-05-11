@@ -78,65 +78,166 @@ class DAGtopo
 
 class GitoeChange
   # changes in ONE repo
-  extract_branches: ( repo_name, @list_branches, @list_changes )->
-    console.log "extract to", list_branches
-    # TODO fill in here
-
-  constructor: ( repo )->
+  constructor: ( repo_name, repo_content )->
     # repo :: { ref: logs }
 
-    # classify into HEAD / non-HEAD
-    changes_in_head     = []
-    changes_in_branches = []
-    for branch, content of repo
-      if branch is 'HEAD'
-        cumulator = changes_in_head
-      else
-        cumulator = changes_in_branches
-      for change in content.log
-        change["branch"] = branch
-        cumulator.push change
-
+    # collect changes
     changes = []
-    changes_in_branches.sort (a,b)->( a.committer.time - b.committer.time )
-    # group changes in HEAD into non-HEAD, by commit time
-    # TODO recognize not-on-branch changes
-    for from_branch in changes_in_branches
-      from_head = []
-      while changes_in_head.length > 0 and changes_in_head[0].committer.time <= from_branch.committer.time
-        from_head.push changes_in_head.shift()
-      changes.push @group_change(from_branch, from_head)
+    for ref_name, ref_content of repo_content
+      for change in ref_content.log
+        change['repo_name'] = repo_name
+        change["ref_name"] = ref_name
+        changes.push change
+
+    # sort by time and ref_name
+    changes.sort (a,b)->
+      ( a.committer.time - b.committer.time )               \
+      or -((a.ref_name == "HEAD") - (b.ref_name == "HEAD")) \
+      or strcmp(a.ref_name, b.ref_name)
 
     @changes = changes
-    @cb = {}
 
-  set_cb: (new_cb)->
-    #   repo_open     : ( path )->
-    for name, fun of new_cb
-      @cb[name] = fun
+  group_changes : ()-> # [ [group_of_changes] ] # last one of group
+    groups = []
+    begin = 0
+    for change, end in @changes
+      # TODO group changes smarter
+      if (change.ref_name isnt "HEAD") \
+      or (end == @changes.length - 1 )
+        groups.push @changes[ begin .. end ]
+        begin = end+1
+    groups
 
-  group_change: (change_in_branch, changes_in_head)->
-    {}
+  extract: ()-># [ changes_as_li ]
+    grouped_changes = @group_changes()
+    @extract_group(group) for group in grouped_changes
+    # TODO fill in here
 
-  @message_patterns = {}
-  @message_patterns.head = {
+  extract_group: (group)->
+    # convert group to a <li>
+    main = group[ group.length-1 ]
+
+    @pretty_change(main)
+
+  pretty_change: (change)->
+    rules = GitoeChange.message_rules
+    for pattern, regex of rules.patterns
+      if matched = change.message.match(regex)
+        return rules.actions[pattern](matched, change)
+    console.log "not recognized reflog message: <#{change.message}>", change
+    $('<li>').text("unrecognized change in #{@repo_name}")
+
+  @message_rules = {
     patterns: {
-      clone: /^clone: from (.*)/
+      clone:  /^clone: from (.*)/
+      branch: /^branch: Created from (.*)/
+      commit: /^commit: /
+      commit_amend: /^commit \(amend\): /
+      merge:  /^merge ([^:]*):/
+      reset:  /^reset: moving to (.*)/
+      push :  /^update by push/
+      pull :  /^pull: /
+      fetch:  /^fetch: /
     }
     actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-      ]
-    }
-  }
-  @message_patterns.branch = {
-    patterns: {
-      clone: /^clone: from (.*)/
-    }
-    actions : {
-      clone: (matched,change)->[
-        "clone from #{matched[1]}"
-      ]
+      clone: (matched,change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': created at ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git clone').addClass('git_command')
+          ]
+      branch: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': created at ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            if /^refs/.test matched[1]
+              $('<span>').text("(was #{matched[1]}) ").addClass('comment')
+            $('<span>').text(' by ')
+            $('<span>').text('git branch').addClass('git_command')
+          ]
+      commit: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' → ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git commit').addClass('git_command')
+          ]
+      commit_amend: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': move from ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' to ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git commit --amend').addClass('git_command')
+          ]
+      merge: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': merge ')
+            $('<span>').text(matched[1]).addClass('ref_name')
+            $('<span>').text(' by ')
+            $('<span>').text('git merge').addClass('git_command')
+          ]
+      reset: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': move from ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' to ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git reset').addClass('git_command')
+          ]
+      push: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': move from ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' to ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git push').addClass('git_command')
+          ]
+      fetch: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': move from ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' to ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git fetch').addClass('git_command')
+          ]
+      pull: (matched, change)->
+        $('<li>')
+          .append [
+            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
+            $('<span>').text(change.ref_name).addClass('ref_name')
+            $('<span>').text(': move from ')
+            $('<span>').text(change.oid_old).addClass('sha1_commit')
+            $('<span>').text(' to ')
+            $('<span>').text(change.oid_new).addClass('sha1_commit')
+            $('<span>').text(' by ')
+            $('<span>').text('git pull').addClass('git_command')
+          ]
     }
   }
 
@@ -147,18 +248,21 @@ class GitoeHistorian
   set_cb: (new_cb)->
     # cb:
     #   update_status : (key, text)
-    #   update_repo   : (repo, { branch: [changes] } )
+    #   update_reflog : ( { repo_name: [changes] } )
     for name, fun of new_cb
       @cb[name] = fun
 
   parse: ( refs )-> # [ changes of all repos ]
     repos = @classify(clone refs)
     @update_status( refs )
-    @update_status repos
 
+    result = {}
     for repo_name, content of repos
-      change = new GitoeChange(repo, content)
-      @cb.update_repo?( repo_name, change.parse())
+      result[ repo_name ] = @parse_repo( repo_name, content )
+    @cb.update_reflog?( result )
+
+  parse_repo: (repo_name, content)->
+    (new GitoeChange(repo_name, content)).extract()
 
   classify: (reflog_raw)-> # { reflog classified by repo }
     repos = { local: {} }
