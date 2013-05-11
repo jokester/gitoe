@@ -15,49 +15,49 @@
         if /\?dev$/.test location.href
           setTimeout location.reload.bind(location), 1000
   %body
+    #flash
     #wrapper.fillh.fillv
-      #flash
       #left.fillv
         #banner.fillh
           %h1 gitoe
         #control.fillh.fillv.scrollv
-          .open
-            %legend open repository
-            %form.form-inline
-              / TODO empty here
-              %input.path(placeholder="path of git repo" type="text" value="/home/mono/gitoe")
-              %button.open-btn open repo
-          .status
-            %legend status
-            %ul
-              %li
-                %span.path.badge.badge-success ???
-              / TODO a refresh-repo button around here
-              %br
-              %li
-                %span.tags.badge.badge-info ?
-                %span tags
-              %li
-                %span.remote.repos.badge.badge-info ?
-                %span remote repos
-              %li
-                %span.local.branches.badge.badge-info ?
-                %span local branches
-              %li
-                %span.commits.badge.badge-info ?
-                %span commits
-          .branches
-            %legend branches
-            %ul.list-branches
-          .history
-            %legend history
-            %ol
-              %li 1
-              %li 1
-              %li 1
-              %li 1
-              %li 1
-              %li last
+          -# .open
+          -#   %legend open repository
+          -#   %form.form-inline
+          -#     / TODO empty here
+          -#     %input.path(placeholder="path of git repo" type="text" value="/home/mono/gitoe")
+          -#     %button.open-btn open repo
+          -# .status
+          -#   %legend status
+          -#   %ul
+          -#     %li
+          -#       %span.path.badge.badge-success ???
+          -#     / TODO a refresh-repo button around here
+          -#     %br
+          -#     %li
+          -#       %span.tags.badge.badge-info ?
+          -#       %span tags
+          -#     %li
+          -#       %span.remote.repos.badge.badge-info ?
+          -#       %span remote repos
+          -#     %li
+          -#       %span.local.branches.badge.badge-info ?
+          -#       %span local branches
+          -#     %li
+          -#       %span.commits.badge.badge-info ?
+          -#       %span commits
+          -# .branches
+          -#   %legend branches
+          -#   %ul.list-branches
+          -# .history
+          -#   %legend history
+          -#   %ol
+          -#     %li 1
+          -#     %li 1
+          -#     %li 1
+          -#     %li 1
+          -#     %li 1
+          -#     %li last
       #right.fillv.fillh
         #graph.fillh.fillv.scrollh.scrollv
         #footer.fillh

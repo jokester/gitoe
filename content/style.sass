@@ -4,6 +4,7 @@ $footer_height: 1.5em
 
 body, html, #wrapper
   height: 100%
+  width: 100%
 
 #left
   width: $left_width
@@ -92,12 +93,12 @@ body, html, #wrapper
       min-width : 4em
 
 #flash
-  position: absolute
-  top: 20px
+  position: fixed
+  z-index: 10
+  bottom: 20px
   left: 20px
   min-width: 60px
-  background-color: white
-  color: blue
+  color: darkblue
 #flash:empty
   display: none
 

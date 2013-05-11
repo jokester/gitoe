@@ -124,10 +124,10 @@ class GitoeCanvas
     }
   }
 
-  constructor: ( id_canvas, div, @cb )->
+  constructor: ( id_container )->
     @dag = new DAGLayout(draw_node: @draw_async)
     @constant = clone GitoeCanvas.CONST
-    @init_canvas(id_canvas)
+    @init_canvas( id_container )
     @objs = {}    # { sha1 : canvas objs }
     @div = $("##{id_canvas}").parent()
 
@@ -142,6 +142,7 @@ class GitoeCanvas
   # ref_on_ref:    (ref1, ref2)
   # destroy: (sha1)->
     # remove sha1's canvas objects
+  # highlight: (sha1)->
 
   add_commit: (commit)->
     @dag.add_node( commit.sha1, commit.parents )

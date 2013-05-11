@@ -23,10 +23,11 @@ GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
 class GitoeUI
 
-  constructor: (@selectors)->
+  constructor: ( id )->
+    @historian = new GitoeHistorian()
     @cb = {}
-    for to_hide in [ "status", "branches", "history" ]
-      @section(to_hide).hide()
+    @root = $( "##{ id }" )
+    @init_dom()
     @bind_events()
 
   set_cb: (new_cb)->
@@ -34,21 +35,53 @@ class GitoeUI
     for name, fun of new_cb
       @cb[name] = fun
 
-  update_status: (key,value)=>
-    unless @selectors.status[key]
-      throw "illigal key '#{key}'"
-    # console.log key,value
-    $(@selectors.status[key]).text(value)
-
-  update_reflog: (reflogs)=>
+  init_dom: ()->
     cb = @cb
+    @sections = {}
+    @elems = {}
+
+    repo_address = @elems.repo_address = $("<input>").val("/home/mono/config")
+    @elems.repo_open    = $("<input>").attr( type: "button" ).val("open").on "click", ->
+      cb.repo_open? repo_address.val()
+    @elems.status  = $("<ul>")
+    @elems.history = $("<ul>")
+
+    @root.append [
+      @sections.open = $("<div>").append [
+        $("<h3>").text("open repo")
+        $("<hr>")
+        @elems.repo_address
+        @elems.repo_open
+      ]
+      @sections.status = $("<div>").hide().append [
+        $("<h3>").text("status")
+        $("<hr>")
+        @elems.status
+      ]
+      @sections.history= $("<div>").hide().append [
+        $("<h3>").text("history")
+        $("<hr>")
+        @elems.history
+      ]
+    ]
+
+  open_success: ()->
+    @slideUp "open"
+    @slideDown "status"
+    @slideDown "history"
+
+  update_status: ( status )=>
+    console.log status
+
+  update_reflog: (changes)=>
+    cb = @cb
+    return
     list_branches = @elem "branches", "list"
     list_changes  = @elem "history",  "list"
     list_branches.empty()
     list_changes.empty()
-    for repo_name, changes of reflogs
-      console.log changes
-      list_changes.append changes
+    for change in changes
+      list_changes.append
 
     console.log reflogs
 
@@ -58,69 +91,47 @@ class GitoeUI
     @section( section ).slideUp()
 
   section: (name)->
-    $( @selectors[name].here )
+    @sections[ name ]
 
-  elem:    (section, name)->
-    selector = [
-      @selectors.here
-      ">"
-      @selectors[section].here
-      @selectors[section][name]
-    ].join( " " )
-    selected = $(selector)
-    if selected.length != 1
-      throw "{#{selector}} gives #{selected.length} results"
-    else
-      selected
+  elem: (name)->
+    @elems[ name ]
 
   bind_events: ()->
     cb              = @cb
 
-    input_repo_path = @elem "open", "path"
-    btn_repo_open   = @elem "open", "open"
-    btn_repo_open.on "click", ()->
-      path = input_repo_path.val()
-      cb.repo_open? path
-      false
-
-    for region in [ "branches", "history", "status" ]
-      legend = @elem region, "legend"
-      list   = @elem region, "list"
-      legend.on "click", do (list)->()->
-        list.slideToggle()
+    @historian.set_cb {
+      update_reflog: @update_reflog
+    }
 
 class GitoeController
-  constructor: (selectors)->
+  constructor: ( ids )->
     @init_repo()
     @init_historian()
-    @init_canvas( selectors.canvas.id, selectors.canvas.here )
-    @init_control( selectors.control )
+    # @init_canvas( ids.graph )
+    @init_control( ids.control )
     @bind_events()
 
   init_repo: ()->
     @repo = new GitoeRepo()
 
   init_historian: ()->
-    @historian = new GitoeHistorian
 
-  init_canvas:( id_canvas, canvas_container )->
-    @canvas = new GitoeCanvas id_canvas, canvas_container, { }
+  init_canvas:( id )->
+    @canvas = new GitoeCanvas id
 
-  init_control: ( selectors_in_control )->
-    @ui = new GitoeUI( selectors_in_control )
+  init_control: ( id )->
+    @ui = new GitoeUI( id )
 
   bind_events: ()->
     repo      = @repo
     canvas    = @canvas
-    historian = @historian
-    ui   = @ui
+    ui        = @ui
 
     repo.set_cb {
       ajax_error      : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
       fetched_commit  : (to_fetch, fetched)->
-        ui.update_status 'commits', fetched + to_fetch
         flash "#{to_fetch} commits to fetch", 1000
         if to_fetch > 0
           repo.fetch_commits()
@@ -129,11 +140,8 @@ class GitoeController
 
       fetch_status    : (status)->
         repo.fetch_commits()
-        historian.parse status.refs
-        ui.update_status "path", status.path
 
-      yield_commit    : canvas.add_commit_async
-
+      yield_commit    : ()-> #canvas.add_commit_async
     }
 
     ui.set_cb {
@@ -144,58 +152,21 @@ class GitoeController
             flash "error opening #{path}"
           success: (response)-> # opened
             flash "opened #{path}", 2000
-            ui.slideUp "open"
+
             repo.fetch_status {
-              success: ()->
-                ui.slideDown "status"
-                ui.slideDown "branches"
-                ui.slideDown "history"
+              success: ( status )->
+                ui.open_success()
+                ui.update_status( status )
             }
         }
       show_change: (fun)->
         fun( canvas )
     }
-    historian.set_cb {
-      update_status: ui.update_status
-      update_reflog: ui.update_reflog
-    }
 
 $ ->
-  selectors = { # todo move this to Controller class
-    control:  {
-      here: '#control'
-      open:   {
-        here : '.open'
-        path : '.path'
-        open : '.open-btn'
-      }
-      status: {
-        here           : '.status'
-        list           : 'ul'
-        path           : '.path'
-        commits        : '.commits'
-        tags           : '.tags'
-        local_branches : '.local.branches'
-        remote_branches: '.remote.branches'
-        remote_repos: '.remote.repos'
-      }
-      branches: {
-        here           : '.branches'
-        legend         : 'legend'
-        list           : 'ul'
-      }
-      history: {
-        here           : '.history'
-        legend         : 'legend'
-        list           : 'ol'
-      }
-    }
-    canvas:  {
-      here             : '#canvas-container'
-      id               : 'graph'
-    }
+  ids = { # todo move this to Controller class
+    control: 'control'
+    graph:   'graph'
   }
 
-  c = new GitoeController( selectors )
-
-  $( selectors.control.open.open ).click() # TODO remove this in normal version
+  c = new GitoeController( ids )
