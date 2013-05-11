@@ -1,46 +1,57 @@
-body, html
+$left_width: 400px
+$header_height: 7em
+$footer_height: 1.5em
+
+body, html, #wrapper
   height: 100%
 
-.firstrow, .lastrow
-  height: 0px
-
-.col1
-  width: 45%
+#left
+  width: $left_width
   background-color: #eff
 
-.col2
-  background-color: #ffe
+#right
+  position: absolute
+  left: $left_width
 
 #banner
   background-color: lightblue
+  height: $header_height
   h1
     padding: 10px 20px
-    font-size: 50px
+    font-size: 5em
 
-#about
+#control
+  position: absolute
+  top: $header_height
+#graph
+  position: absolute
+  bottom: $footer_height
+#footer
+  position: absolute
+  bottom: 0px
+  height: $footer_height
+
+
   background-color: #ffa
 
-#banner, #about, #control
-  padding: 15px
 
-.container.v
+.scrollv
   overflow-y: scroll
-.container.h
+.scrollh
   overflow-x: scroll
-.container
-  width: 100%
-  height: 100%
+.fillh
+  position: absolute
+  left: 0px
+  right: 0px
+.fillv
+  position: absolute
+  top: 0px
+  bottom: 0px
 
 .big // pretend to be big
   width: 10000px
   height: 10000px
 
-#all
-  table-layout: fixed
-  width:  100%
-  height: 100%
-  td
-    vertical-align: top
 
 #control
   legend
