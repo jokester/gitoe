@@ -270,14 +270,14 @@ class GitoeChange
           @git_command "git push"
           @span ": update "
           @ref_fullname change
+          @span " to "
+          @span change.oid_new, "sha1_commit"
           if change.oid_old isnt "0000000000000000000000000000000000000000"
             @span " ( was "
           if change.oid_old isnt "0000000000000000000000000000000000000000"
             @span change.oid_old, "sha1_commit"
           if change.oid_old isnt "0000000000000000000000000000000000000000"
             @span " )"
-          @span " to "
-          @span change.oid_new, "sha1_commit"
         ]
       fetch: (matched, change)->
         @li [
