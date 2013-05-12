@@ -100,6 +100,7 @@ class GitoeChange
       or strcmp(a.ref_name, b.ref_name)
 
     grouped_changes = @group changes
+    console.log changes, grouped_changes
 
     grouped_changes.map (group)->
       new GitoeChange(group)
@@ -110,9 +111,10 @@ class GitoeChange
     for change, end in changes
       next = changes[ end + 1 ]
       # TODO group changes smarter
-      if (change.ref_name isnt "HEAD") \      # change in named branch
-      or (end == changes.length - 1 )  \      # last change in all changes
-      or (next.repo_name != change.repo_name) # last change in consecutive changes of the same repo
+      if (change.ref_name isnt "HEAD")  \      # change in named branch
+      or (end == changes.length - 1 )   \      # last change in all changes
+      or (next.repo_name != change.repo_name)\ # last change in consecutive changes of the same repo
+      or ( /^checkout:/.test(change.message) ) # and not /^rebase/.test(next.message) ) # checkout a branch
         groups.push changes[ begin .. end ]
         begin = end+1
     groups
@@ -129,18 +131,50 @@ class GitoeChange
       @is_local = false
 
   to_html: ()-># [ changes_as_li ]
-    @pretty_change(@main)
-
-  pretty_change: (change)->
     rules = GitoeChange.message_rules
+    html = GitoeChange.html
     for pattern, regex of rules.patterns
-      if matched = change.message.match(regex)
-        return rules.actions[pattern](matched, change).addClass("reflog")
-    console.log "not recognized reflog message: <#{change.message}>", change
-    $('<li>').text("unrecognized change in #{@repo_name}").on "click", @
+      if matched = @main.message.match(regex)
+        return rules.actions[pattern].apply(html,[matched, @main]).addClass("reflog")
+    console.log "not recognized change : ", @main, @rest
+    $('<li>').text("???").addClass("unknown")
 
   on_click: ->-># eval in GitoeCanvas context
     console.log @
+
+  @html = {
+    # a singleton obj to build html
+    span: (text,classes)->
+      $("<span>").text(text).addClass(classes)
+    li: (content, classes)->
+      $("<li>").append(content).addClass(classes)
+    ref_fullname: ( change )-> # span "repo/ref"
+      if change.repo_name is local
+        @span change.ref_name, "ref_name"
+      else
+        @span "#{change.repo_name}/#{change.ref_name}", "ref_name"
+    git_command: (text)->
+      @span text, "git_command"
+    ref_realname: (ref_name)-> # "repo/ref"
+      splited = ref_name.split "/"
+      if splited[0] == "HEAD"
+        "HEAD"
+      else if splited[0] == "refs"
+        switch splited[1]
+          when "heads"   # refs/heads/<branch>
+            splited[2]
+          when "remotes" # refs/remotes/<repo>/<branch>
+            "#{ splited[2] }/#{ splited[3] }"
+          when "tags"    # refs/tags/<tag>
+            splited[2]
+          else
+            console.log "not recognized", ref_name
+            "???"
+      else
+        console.log "not recognized", ref_name
+        "???"
+
+  }
   @message_rules = {
     patterns: {
       clone:  /^clone: from (.*)/
@@ -152,106 +186,121 @@ class GitoeChange
       push :  /^update by push/
       pull :  /^pull: /
       fetch:  /^fetch: /
+      checkout: /^checkout: moving from ([^ ]+) to ([^ ]+)/
+      rename_remote: /^remote: renamed ([^ ]+) to ([^ ]+)/
     }
     actions : {
       clone: (matched,change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': created at ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git clone').addClass('git_command')
-          ]
+        @li [
+          @git_command "git clone"
+          @span ": create "
+          @ref_fullname change
+          @span " at "
+          @span change.oid_new, "sha1_commit"
+        ]
       branch: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': created at ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            if /^refs/.test matched[1]
-              $('<span>').text("(was #{matched[1]}) ").addClass('comment')
-            $('<span>').text(' by ')
-            $('<span>').text('git branch').addClass('git_command')
-          ]
+        # TODO show position better
+        @li [
+          @git_command "git branch"
+          @span ": create "
+          @ref_fullname change
+          @span " at "
+          @span change.oid_new, "sha1_commit"
+          if /^refs/.test matched[1]
+            @span " (was "
+          if /^refs/.test matched[1]
+            @span @ref_realname(matched[1]), "ref_name"
+          if /^refs/.test matched[1]
+            @span " )"
+        ]
       commit: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' → ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git commit').addClass('git_command')
-          ]
+        @li [
+          @git_command "git commit"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       commit_amend: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': move from ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' to ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git commit --amend').addClass('git_command')
-          ]
+        @li [
+          @git_command "git commit --amend"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       merge: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': merge ')
-            $('<span>').text(matched[1]).addClass('ref_name')
-            $('<span>').text(' by ')
-            $('<span>').text('git merge').addClass('git_command')
-          ]
+        @li [
+          @git_command "git merge"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       reset: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': move from ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' to ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git reset').addClass('git_command')
-          ]
+        @li [
+          @git_command "git reset"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       push: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': move from ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' to ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git push').addClass('git_command')
-          ]
+        @li [
+          @git_command "git push"
+          @span ": point "
+          @ref_fullname change
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span " ( was "
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span change.oid_old, "sha1_commit"
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span " )"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       fetch: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': move from ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' to ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git fetch').addClass('git_command')
-          ]
+        @li [
+          @git_command "git fetch"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
       pull: (matched, change)->
-        $('<li>')
-          .append [
-            $('<span>').text("#{change.repo_name}/").addClass('repo_name')
-            $('<span>').text(change.ref_name).addClass('ref_name')
-            $('<span>').text(': move from ')
-            $('<span>').text(change.oid_old).addClass('sha1_commit')
-            $('<span>').text(' to ')
-            $('<span>').text(change.oid_new).addClass('sha1_commit')
-            $('<span>').text(' by ')
-            $('<span>').text('git pull').addClass('git_command')
-          ]
+        @li [
+          @git_command "git pull"
+          @span ": move "
+          @ref_fullname change
+          @span " from "
+          @span change.oid_old, "sha1_commit"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
+      checkout: (matched, change)->
+        @li [
+          @git_command "git checkout"
+          @span ": checkout "
+          @span matched[2], "ref_name"
+        ]
+      rename_remote: (matched, change)->
+        @li [
+          @git_command "git remote rename"
+          @span ": rename "
+          @span @ref_realname(matched[1]), "ref_name"
+          @span " to "
+          @span @ref_realname(matched[2]), "ref_name"
+        ]
     }
   }
 

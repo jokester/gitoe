@@ -45,7 +45,7 @@ class GitoeUI
       cb.repo_open? repo_path.val()
     @elems.num_commits  = $("<span>").text 0
     @elems.num_tags     = $("<span>").text 0
-    @elems.history = $("<ul>")
+    @elems.history = $("<ol>")
     @elems.repo_title = $("<h3>")
 
     @root.append [
