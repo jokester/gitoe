@@ -18,8 +18,13 @@ task :production do
 end
 
 desc "watch and re-compile with guard"
-task :watch do
+task :guard do
   sh "bundle exec guard"
+end
+
+desc "watch and re-compile with guard"
+task :watch do
+  sh "bundle exec nanoc watch"
 end
 
 desc "compile with nanoc"
