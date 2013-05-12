@@ -188,6 +188,7 @@ class GitoeChange
       fetch:  /^fetch: /
       checkout: /^checkout: moving from ([^ ]+) to ([^ ]+)/
       rename_remote: /^remote: renamed ([^ ]+) to ([^ ]+)/
+      rebase_finish: /^rebase (-[^ ]+)? \(finish\): returning to (.*)/
     }
     actions : {
       clone: (matched,change)->
@@ -300,6 +301,11 @@ class GitoeChange
           @span @ref_realname(matched[1]), "ref_name"
           @span " to "
           @span @ref_realname(matched[2]), "ref_name"
+        ]
+      rebase_finish: (matched, change)->
+        console.log matched
+        @li [
+          @git_command "git rebase"
         ]
     }
   }
