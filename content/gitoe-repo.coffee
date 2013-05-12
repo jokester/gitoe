@@ -112,9 +112,10 @@ class GitoeChange
       next = changes[ end + 1 ]
       # TODO group changes smarter
       if (change.ref_name isnt "HEAD")  \      # change in named branch
+      or ( /^rebase: aborting/.test change.message) \ # rebase --abort
       or (end == changes.length - 1 )   \      # last change in all changes
       or (next.repo_name != change.repo_name)\ # last change in consecutive changes of the same repo
-      or ( /^checkout:/.test(change.message) ) # and not /^rebase/.test(next.message) ) # checkout a branch
+      or ( /^checkout:/.test(change.message) and not /^(rebase|cherry-pick)/.test(next.message) ) # last checkout before rebase
         groups.push changes[ begin .. end ]
         begin = end+1
     groups
@@ -135,7 +136,7 @@ class GitoeChange
     html = GitoeChange.html
     for pattern, regex of rules.patterns
       if matched = @main.message.match(regex)
-        return rules.actions[pattern].apply(html,[matched, @main]).addClass("reflog")
+        return rules.actions[pattern].apply(html,[matched, @main, @rest]).addClass("reflog")
     console.log "not recognized change : ", @main, @rest
     $('<li>').text("???").addClass("unknown")
 
@@ -180,15 +181,18 @@ class GitoeChange
       clone:  /^clone: from (.*)/
       branch: /^branch: Created from (.*)/
       commit: /^commit: /
+      commit_merge: /^commit \(merge\): Merge branch '?([^ ]+)'? into '?([^ ]+)'?$/
       commit_amend: /^commit \(amend\): /
       merge:  /^merge ([^:]*):/
       reset:  /^reset: moving to (.*)/
       push :  /^update by push/
       pull :  /^pull: /
-      fetch:  /^fetch: /
+      fetch:  /^fetch/
       checkout: /^checkout: moving from ([^ ]+) to ([^ ]+)/
       rename_remote: /^remote: renamed ([^ ]+) to ([^ ]+)/
       rebase_finish: /^rebase (-[^ ]+)? \(finish\): returning to (.*)/
+      rebase_finish2:/^rebase (-[^ ]+)? \(finish\): ([^ ]+) onto/
+      rebase_abort: /^rebase: aborting/
     }
     actions : {
       clone: (matched,change)->
@@ -224,6 +228,14 @@ class GitoeChange
           @span " to "
           @span change.oid_new, "sha1_commit"
         ]
+      commit_merge: (matched, change)->
+        @li [
+          @git_command "git merge"
+          @span ": merge "
+          @span matched[1], "ref_name"
+          @span " into "
+          @span matched[2], "ref_name"
+        ]
       commit_amend: (matched, change)->
         @li [
           @git_command "git commit --amend"
@@ -237,27 +249,26 @@ class GitoeChange
       merge: (matched, change)->
         @li [
           @git_command "git merge"
-          @span ": move "
+          @span ": merge "
+          @span matched[1], "ref_name"
+          @span " into "
           @ref_fullname change
-          @span " from "
-          @span change.oid_old, "sha1_commit"
-          @span " to "
-          @span change.oid_new, "sha1_commit"
         ]
       reset: (matched, change)->
         @li [
           @git_command "git reset"
-          @span ": move "
+          @span ": point "
           @ref_fullname change
-          @span " from "
-          @span change.oid_old, "sha1_commit"
           @span " to "
           @span change.oid_new, "sha1_commit"
+          @span " ( was "
+          @span change.oid_old, "sha1_commit"
+          @span " )"
         ]
       push: (matched, change)->
         @li [
           @git_command "git push"
-          @span ": point "
+          @span ": update "
           @ref_fullname change
           if change.oid_old isnt "0000000000000000000000000000000000000000"
             @span " ( was "
@@ -271,24 +282,29 @@ class GitoeChange
       fetch: (matched, change)->
         @li [
           @git_command "git fetch"
-          @span ": move "
+          @span ": update "
           @ref_fullname change
-          @span " from "
-          @span change.oid_old, "sha1_commit"
           @span " to "
           @span change.oid_new, "sha1_commit"
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span " ( was "
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span change.oid_old, "sha1_commit"
+          if change.oid_old isnt "0000000000000000000000000000000000000000"
+            @span " )"
         ]
       pull: (matched, change)->
         @li [
           @git_command "git pull"
-          @span ": move "
+          @span ": update "
           @ref_fullname change
           @span " from "
           @span change.oid_old, "sha1_commit"
           @span " to "
           @span change.oid_new, "sha1_commit"
         ]
-      checkout: (matched, change)->
+      checkout: (matched, change, rest)->
+        # TODO handle remaining "checkout SHA1" message of removed branch
         @li [
           @git_command "git checkout"
           @span ": checkout "
@@ -303,9 +319,36 @@ class GitoeChange
           @span @ref_realname(matched[2]), "ref_name"
         ]
       rebase_finish: (matched, change)->
-        console.log matched
         @li [
-          @git_command "git rebase"
+          if matched[1]
+            @git_command "git rebase #{matched[1]}"
+          else
+            @git_command "git rebase"
+          @span ": rebase "
+          @span @ref_realname(matched[2]), "ref_name"
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
+      rebase_finish2: (matched, change)->
+        @li [
+          if matched[1]
+            @git_command "git rebase #{matched[1]}"
+          else
+            @git_command "git rebase"
+          @span ": rebase "
+          @ref_fullname(change)
+          @span " to "
+          @span change.oid_new, "sha1_commit"
+        ]
+      rebase_abort: (matched, change, rest)->
+        if rest.length > 0
+          if matched_head = rest[0].message.match /^checkout: moving from ([^ ]+)/
+            real_ref = matched_head[1]
+        @li [
+          @git_command "git rebase --abort"
+          @span ": didn't rebase "
+          if real_ref
+            @span real_ref, "ref_name"
         ]
     }
   }
