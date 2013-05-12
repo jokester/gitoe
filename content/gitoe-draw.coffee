@@ -129,7 +129,7 @@ class GitoeCanvas
     @constant = clone GitoeCanvas.CONST
     @init_canvas( id_container )
     @objs = {}    # { sha1 : canvas objs }
-    @div = $("##{id_canvas}").parent()
+    @div = $("##{id_container}")
 
   add_commit_async: (commit)=>
     setTimeout( @add_commit.bind( @, commit )  , 500 )

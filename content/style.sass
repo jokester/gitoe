@@ -1,4 +1,4 @@
-$left_width: 400px
+$left_width: 600px
 $header_height: 7em
 $footer_height: 1.5em
 
@@ -31,10 +31,7 @@ body, html, #wrapper
   position: absolute
   bottom: 0px
   height: $footer_height
-
-
   background-color: #ffa
-
 
 .scrollv
   overflow-y: scroll
@@ -48,11 +45,6 @@ body, html, #wrapper
   position: absolute
   top: 0px
   bottom: 0px
-
-.big // pretend to be big
-  width: 10000px
-  height: 10000px
-
 
 #control
   legend
@@ -76,7 +68,6 @@ body, html, #wrapper
       background-color: lightblue
     span.sha1_commit
       background-color: pink
-      cursor: crosshair
       width: 5em
       overflow: hidden
     span.git_command
@@ -95,10 +86,11 @@ body, html, #wrapper
 #flash
   position: fixed
   z-index: 10
-  bottom: 20px
+  top: 20px
   left: 20px
   min-width: 60px
   color: darkblue
+  background-color: #ccc
 #flash:empty
   display: none
 

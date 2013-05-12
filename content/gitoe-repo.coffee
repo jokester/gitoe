@@ -8,6 +8,8 @@ exec_callback = (context,fun,args)->
 clone = (obj)->
   $.extend {}, obj
 
+local = '##??!'
+
 strcmp = (str1, str2, pos = 0)->
   c1 = str1.charAt( pos )
   c2 = str2.charAt( pos )
@@ -78,55 +80,67 @@ class DAGtopo
 
 class GitoeChange
   # changes in ONE repo
-  constructor: ( repo_name, repo_content )->
+  @parse: ( repos )-># [ changes ]
     # repo :: { ref: logs }
 
     # collect changes
     changes = []
-    for ref_name, ref_content of repo_content
-      for change in ref_content.log
-        change['repo_name'] = repo_name
-        change["ref_name"] = ref_name
-        changes.push change
+    for repo_name, repo_content of repos
+      for ref_name, ref_content of repo_content
+        for change in ref_content.log
+          change['repo_name'] = repo_name
+          change["ref_name"] = ref_name
+          changes.push change
 
     # sort by time and ref_name
     changes.sort (a,b)->
       ( a.committer.time - b.committer.time )               \
+      or strcmp(a.repo_name, b.repo_name)                   \
       or -((a.ref_name == "HEAD") - (b.ref_name == "HEAD")) \
       or strcmp(a.ref_name, b.ref_name)
 
-    @changes = changes
+    grouped_changes = @group changes
 
-  group_changes : ()-> # [ [group_of_changes] ] # last one of group
+    grouped_changes.map (group)->
+      new GitoeChange(group)
+
+  @group : (changes)-> # [ [group_of_changes] ]
     groups = []
     begin = 0
-    for change, end in @changes
+    for change, end in changes
+      next = changes[ end + 1 ]
       # TODO group changes smarter
-      if (change.ref_name isnt "HEAD") \
-      or (end == @changes.length - 1 )
-        groups.push @changes[ begin .. end ]
+      if (change.ref_name isnt "HEAD") \      # change in named branch
+      or (end == changes.length - 1 )  \      # last change in all changes
+      or (next.repo_name != change.repo_name) # last change in consecutive changes of the same repo
+        groups.push changes[ begin .. end ]
         begin = end+1
     groups
 
-  extract: ()-># [ changes_as_li ]
-    grouped_changes = @group_changes()
-    @extract_group(group) for group in grouped_changes
-    # TODO fill in here
+  constructor: ( changes )->
+    @main = changes[ changes.length - 1 ]
+    if changes.length > 1
+      @rest = changes[ 0 .. (changes.length - 2) ]
+    else
+      @rest = []
+    if @main.repo_name is local
+      @is_local = true
+    else
+      @is_local = false
 
-  extract_group: (group)->
-    # convert group to a <li>
-    main = group[ group.length-1 ]
-
-    @pretty_change(main)
+  to_html: ()-># [ changes_as_li ]
+    @pretty_change(@main)
 
   pretty_change: (change)->
     rules = GitoeChange.message_rules
     for pattern, regex of rules.patterns
       if matched = change.message.match(regex)
-        return rules.actions[pattern](matched, change)
+        return rules.actions[pattern](matched, change).addClass("reflog")
     console.log "not recognized reflog message: <#{change.message}>", change
-    $('<li>').text("unrecognized change in #{@repo_name}")
+    $('<li>').text("unrecognized change in #{@repo_name}").on "click", @
 
+  on_click: ->-># eval in GitoeCanvas context
+    console.log @
   @message_rules = {
     patterns: {
       clone:  /^clone: from (.*)/
@@ -247,50 +261,46 @@ class GitoeHistorian
 
   set_cb: (new_cb)->
     # cb:
-    #   update_status : (key, text)
-    #   update_reflog : ( { repo_name: [changes] } )
+    #   update_reflog   : ( changes )
+    #   update_num_tags : ( num_tags )
     for name, fun of new_cb
       @cb[name] = fun
 
   parse: ( refs )-> # [ changes of all repos ]
-    repos = @classify(clone refs)
-    @update_status( refs )
+    classified = @classify( clone refs )
+    console.log classified
+    @cb.update_num_tags? Object.keys( classified.tags ).length
 
-    result = {}
-    for repo_name, content of repos
-      result[ repo_name ] = @parse_repo( repo_name, content )
-    @cb.update_reflog?( result )
+    changes = GitoeChange.parse( classified.repos )
+    @cb.update_reflog?( changes )
 
-  parse_repo: (repo_name, content)->
-    (new GitoeChange(repo_name, content)).extract()
-
-  classify: (reflog_raw)-> # { reflog classified by repo }
-    repos = { local: {} }
-    for ref_name, reflog of reflog_raw
+  classify: (refs)-> # { repos: {}, tags: {} }
+    repos = {}
+    tags = {}
+    for ref_name, ref_content of refs
       splited = ref_name.split "/"
       if splited[0] == "HEAD" and splited.length == 1
-        repos.local["HEAD"] = reflog
+        repos[ local ] ?= {}
+        repos[ local ]["HEAD"] = ref_content
       else if splited[0] == "refs"
         switch splited[1]
           when "heads"   # refs/heads/<branch>
-            repos.local[ splited[2] ] = reflog
+            repos[ local ] ?= {}
+            repos[ local ][ splited[2] ] = ref_content
           when "remotes" # refs/remotes/<repo>/<branch>
             repos[ splited[2] ] ?= {}
-            repos[ splited[2] ][ splited[3] ] =reflog
+            repos[ splited[2] ][ splited[3] ] = ref_content
           when "tags"    # refs/tags/<tag>
+            tags[ splited[2] ] = ref_content
             # do nothing
           else
             console.log "not recognized", ref_name
       else
         console.log "not recognized", ref_name
-    repos
-
-  update_status: ( refs )->
-    # TODO change
-    return false
-    @cb.update_status? "tags", Object.keys(refs.tags).length
-    @cb.update_status? "local_branches", Object.keys(refs.local).length
-    @cb.update_status? "remote_repos", Object.keys(refs.remote).length
+    {
+      repos: repos
+      tags: tags
+    }
 
 class GitoeRepo
   # TODO

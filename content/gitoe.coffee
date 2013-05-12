@@ -40,23 +40,28 @@ class GitoeUI
     @sections = {}
     @elems = {}
 
-    repo_address = @elems.repo_address = $("<input>").val("/home/mono/config")
+    repo_path = @elems.repo_path = $("<input>").val("/home/mono/gitoe")
     @elems.repo_open    = $("<input>").attr( type: "button" ).val("open").on "click", ->
-      cb.repo_open? repo_address.val()
-    @elems.status  = $("<ul>")
+      cb.repo_open? repo_path.val()
+    @elems.num_commits  = $("<span>").text 0
+    @elems.num_tags     = $("<span>").text 0
     @elems.history = $("<ul>")
+    @elems.repo_title = $("<h3>")
 
     @root.append [
       @sections.open = $("<div>").append [
         $("<h3>").text("open repo")
         $("<hr>")
-        @elems.repo_address
+        @elems.repo_path
         @elems.repo_open
       ]
       @sections.status = $("<div>").hide().append [
-        $("<h3>").text("status")
+        @elems.repo_title
         $("<hr>")
-        @elems.status
+        $("<ul>").append [
+          $("<li>").text(" commits").prepend( @elems.num_commits )
+          $("<li>").text(" tags").prepend( @elems.num_tags )
+        ]
       ]
       @sections.history= $("<div>").hide().append [
         $("<h3>").text("history")
@@ -72,18 +77,25 @@ class GitoeUI
 
   update_status: ( status )=>
     console.log status
+    @elem("repo_title").text( status.path )
+    @historian.parse status.refs
+
+  update_num_commits: (num_commits)=>
+    @elem("num_commits").text( num_commits )
+
+  update_num_tags: (num_tags)=>
+    @elem("num_tags").text( num_tags )
 
   update_reflog: (changes)=>
     cb = @cb
-    return
-    list_branches = @elem "branches", "list"
-    list_changes  = @elem "history",  "list"
-    list_branches.empty()
+    list_changes  = @elem "history"
     list_changes.empty()
     for change in changes
-      list_changes.append
-
-    console.log reflogs
+      li = change.to_html()
+      do (change,li)->
+        li.on "click", ->
+          cb.show_change? change.on_click()
+      list_changes.append li
 
   slideDown: (section)=>
     @section( section ).slideDown()
@@ -97,27 +109,24 @@ class GitoeUI
     @elems[ name ]
 
   bind_events: ()->
-    cb              = @cb
 
     @historian.set_cb {
-      update_reflog: @update_reflog
+      update_reflog  : @update_reflog
+      update_num_tags: @update_num_tags
     }
 
 class GitoeController
   constructor: ( ids )->
     @init_repo()
-    @init_historian()
-    # @init_canvas( ids.graph )
+    @init_canvas( ids.graph )
     @init_control( ids.control )
     @bind_events()
 
   init_repo: ()->
     @repo = new GitoeRepo()
 
-  init_historian: ()->
-
   init_canvas:( id )->
-    @canvas = new GitoeCanvas id
+    @canvas = new GitoeCanvas( id )
 
   init_control: ( id )->
     @ui = new GitoeUI( id )
@@ -133,6 +142,7 @@ class GitoeController
 
       fetched_commit  : (to_fetch, fetched)->
         flash "#{to_fetch} commits to fetch", 1000
+        ui.update_num_commits( fetched )
         if to_fetch > 0
           repo.fetch_commits()
         else
@@ -141,7 +151,7 @@ class GitoeController
       fetch_status    : (status)->
         repo.fetch_commits()
 
-      yield_commit    : ()-> #canvas.add_commit_async
+      yield_commit    : canvas.add_commit_async
     }
 
     ui.set_cb {
@@ -159,8 +169,8 @@ class GitoeController
                 ui.update_status( status )
             }
         }
-      show_change: (fun)->
-        fun( canvas )
+      show_change: ( fun )->
+        fun.apply( canvas )
     }
 
 $ ->
