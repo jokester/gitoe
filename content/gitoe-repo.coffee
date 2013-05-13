@@ -10,7 +10,7 @@ clone = (obj)->
 
 local = '##??!'
 
-uniq = ( old_array, ignore_list=[] )->
+uniq = ( old_array, ignore_list=['0000000000000000000000000000000000000000'] )->
   # leave only first occurances
 
   ignore = {}
@@ -19,8 +19,8 @@ uniq = ( old_array, ignore_list=[] )->
 
   new_array = []
   for elem in old_array
-    if not existed[elem]
-      existed[elem] = true
+    if not ignore[elem]
+      ignore[elem] = true
       new_array.push elem
   new_array
 
@@ -156,8 +156,23 @@ class GitoeChange
 
   on_click: ->
     # closure
+    refs = {}
+    ref_fullname = GitoeChange.html.ref_fullname
+    for change in @rest
+      fullname = ref_fullname change
+      refs[ fullname ] ?= []
+      refs[ fullname ].push change.oid_old
+      refs[ fullname ].push change.oid_new
+    fullname = ref_fullname @main
+    refs[ fullname ] ?= []
+    refs[ fullname ].push @main.oid_old
+    refs[ fullname ].push @main.oid_new
+
+    for fullname, sha1_s of refs
+      refs[fullname] = uniq(sha1_s)
+
     -># in GitoeCanvas context
-      console.log @
+      @set_refs refs
 
   @html = {
     # a singleton obj to eval html DSL with
