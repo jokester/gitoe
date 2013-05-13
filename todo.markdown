@@ -1,5 +1,6 @@
 - gitoe.Historian
     - more patterns
+    - display time of changes in natural language
 
 - visualize change
     - ref -> commit

@@ -4,6 +4,8 @@ R = Raphael or throw "demand Raphael"
 clone = (obj)->
   $.extend({},obj)
 
+strcmp = exports.gitoe.strcmp
+
 class DAGLayout
   # TODO a more proper placement, for
   #   - less crossing
@@ -128,8 +130,9 @@ class GitoeCanvas
     @dag = new DAGLayout(draw_node: @draw_async)
     @constant = clone GitoeCanvas.CONST
     @init_canvas( id_container )
-    @objs = {}    # { sha1 : canvas objs }
+    @objs = {}     # { sha1 : canvas objs }
     @div = $("##{id_container}")
+    @ref_objs = {} # { ref_name: canvas objs }
 
   add_commit_async: (commit)=>
     setTimeout( @add_commit.bind( @, commit )  , 500 )
@@ -164,6 +167,24 @@ class GitoeCanvas
       text       : text
       paths      : paths
     }
+
+  clear_refs: ()->
+    for ref_name, objs of @ref_objs
+      for obj in objs
+        # TODO destroy obj
+        false
+
+  set_refs: (refs)->
+    # refs: { ref_name : [ sha1 ] }
+    @clear_refs()
+
+    ref_names_sorted = Object.keys(refs).sort( strcmp )
+
+    for ref_name, ref_index in ref_names_sorted
+      @ref_objs[ ref_name ] = @draw_ref( ref_index, ref_name, refs[ref_name] )
+
+  draw_ref: ( ref_index, ref_name, sha1s )->
+    # TODO
 
   commit_coord: (layer,pos)->{
     # left and top coord of commit-box
