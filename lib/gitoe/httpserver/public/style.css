@@ -1,0 +1,106 @@
+body, html, #wrapper {
+  height: 100%;
+  width: 100%; }
+
+#left {
+  width: 650px;
+  background-color: #eeffff; }
+
+#right {
+  position: absolute;
+  left: 650px; }
+
+#banner {
+  background-color: lightblue;
+  height: 7em; }
+  #banner h1 {
+    padding: 10px 20px;
+    font-size: 5em; }
+
+#control {
+  position: absolute;
+  top: 7em; }
+
+#graph {
+  position: absolute;
+  bottom: 1.5em; }
+
+#footer {
+  position: absolute;
+  bottom: 0px;
+  height: 1.5em;
+  background-color: #ffffaa; }
+
+.scrollv {
+  overflow-y: scroll; }
+
+.scrollh {
+  overflow-x: scroll; }
+
+.fillh {
+  position: absolute;
+  left: 0px;
+  right: 0px; }
+
+.fillv {
+  position: absolute;
+  top: 0px;
+  bottom: 0px; }
+
+#control legend {
+  font-size: 20px; }
+#control > div {
+  background-color: #eeeeee;
+  padding: 15px;
+  margin: 10px 0px; }
+#control li {
+  margin: 5px 0px; }
+  #control li span.repo_name,
+  #control li span.ref_name,
+  #control li span.sha1_commit,
+  #control li span.git_command,
+  #control li span.comment {
+    display: inline-block;
+    font-family: monospace; }
+  #control li span.repo_name {
+    background-color: yellow; }
+  #control li span.ref_name {
+    background-color: lightblue; }
+  #control li span.sha1_commit {
+    background-color: pink;
+    width: 4.94em;
+    overflow: hidden; }
+  #control li span.git_command {
+    min-width: 7em;
+    text-align: center;
+    background-color: lightgreen; }
+  #control li span.comment {
+    font-size: 0.8em; }
+#control li.unknown {
+  color: red; }
+
+#flash {
+  position: fixed;
+  z-index: 10;
+  top: 20px;
+  left: 20px;
+  min-width: 60px;
+  color: darkblue;
+  background-color: #cccccc; }
+
+#flash:empty {
+  display: none; }
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px; }
+
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  -webkit-border-radius: 10px;
+  border-radius: 10px; }
+
+::-webkit-scrollbar-thumb {
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  background: rgba(255, 0, 0, 0.8); }
