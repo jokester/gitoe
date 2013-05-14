@@ -145,7 +145,6 @@ class GitoeCanvas
   # ref_on_ref:    (ref1, ref2)
   # destroy: (sha1)->
     # remove sha1's canvas objects
-  # highlight: (sha1)->
 
   add_commit: (commit)->
     @dag.add_node( commit.sha1, commit.parents )
@@ -170,27 +169,75 @@ class GitoeCanvas
 
   clear_refs: ()->
     for ref_name, objs of @ref_objs
-      for obj in objs
-        # TODO destroy obj
-        false
+      for obj in (objs or [])
+        obj.remove()
 
   set_refs: (refs)->
     # refs: { ref_name : [ sha1 ] }
     @clear_refs()
+    # console.log refs
 
     ref_names_sorted = Object.keys(refs).sort( strcmp )
 
     for ref_name, ref_index in ref_names_sorted
       @ref_objs[ ref_name ] = @draw_ref( ref_index, ref_name, refs[ref_name] )
 
-  draw_ref: ( ref_index, ref_name, sha1s )->
+  draw_ref: ( ref_index, ref_name, sha1s )-> # [ canvas objs ]
     # TODO
+    sha1_last = sha1s[ sha1s.length - 1 ]
+    p_last = @dag.query_pos(sha1_last)
+    coord_last = @commit_coord( p_last.layer, p_last.pos )
+    @focus @commit_coord( p_last.layer, p_last.pos )
+    [
+      @draw_ref_path( ref_index, sha1s )
+      @draw_ref_text( ref_index, coord_last, ref_name )
+      @draw_ref_pointer( ref_index, coord_last )
+    ]
+
+  draw_ref_pointer: ( ref_index, p_last )->
+    @canvas.path(
+
+    )
+
+  draw_ref_text: ( ref_index, coord_last, ref_name )->
+    console.log ref_index, coord_last, ref_name
+    @canvas.text(
+      coord_last.left + @constant.box.width + (0.6+ref_index) * 30 + ref_name.length * 2,
+      coord_last.top  + @constant.box.height * (1+ref_index)/3
+      ref_name
+    ).attr(@constant.text_attr)
+
+  draw_ref_path: ( ref_index, sha1s, textbox_width )-> # path
+    command_array = []
+    current = prev = null
+    handler_top = @constant.box.height * (1+ref_index)/3
+    for sha1, index in sha1s
+      prev = current
+      current = @commit_coord_by_sha1( sha1 )
+      if index is 0 # first comit in path
+        command_array.push [
+          'M'
+          current.left + @constant.box.width
+          current.top + handler_top
+        ]...
+      else
+        command_array.push [
+          'Q'
+          50 + ref_index * 40 + @constant.box.width + Math.max(current.left, prev.left)
+          (current.top + prev.top)/2 + handler_top - 35
+          @constant.box.width + current.left
+          current.top + handler_top
+        ]...
+    @canvas.path(command_array.join(' '))
 
   commit_coord: (layer,pos)->{
     # left and top coord of commit-box
     left: (@constant.padding_left + @constant.outer_width  * pos)
     top : (@constant.padding_top  + @constant.outer_height * layer)
   }
+  commit_coord_by_sha1: (sha1)->
+    p = @dag.query_pos(sha1)
+    @commit_coord( p.layer, p.pos )
 
   draw_commit_box: (coord)->
     @canvas.rect(
@@ -205,7 +252,7 @@ class GitoeCanvas
     @canvas.text(
       coord.left + @constant.box.width/2,
       coord.top  + @constant.box.height/2,
-      sha1[0..6]
+      sha1[0..7]
     ).attr(@constant.text_attr)
 
   draw_paths: (coord, parents_pos)->
@@ -259,8 +306,8 @@ class GitoeCanvas
     a*ratio + b*(1-ratio)
   focus: (coord)->
     @div.scrollTo {
-      left: coord.left
-      top : coord.top
+      left: coord.left - 200
+      top : coord.top  - 200
     }
 
   init_canvas: (id_canvas)->
