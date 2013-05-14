@@ -224,7 +224,7 @@ class GitoeCanvas
         command_array.push [
           'Q'
           50 + ref_index * 40 + @constant.box.width + Math.max(current.left, prev.left)
-          (current.top + prev.top)/2 + handler_top
+          (current.top + prev.top)/2 + handler_top - 35
           @constant.box.width + current.left
           current.top + handler_top
         ]...

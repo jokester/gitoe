@@ -229,6 +229,7 @@ class GitoeChange
       rename_remote: /^remote: renamed ([^ ]+) to ([^ ]+)/
       rebase_finish: /^rebase (-[^ ]+)? \(finish\): returning to (.*)/
       rebase_finish2:/^rebase (-[^ ]+)? \(finish\): ([^ ]+) onto/
+      rebase_finish3:/^rebase (-[^ ]+ )?finished: ([^ ]+) onto/
       rebase_abort: /^rebase: aborting/
     }
     actions : {
@@ -373,6 +374,17 @@ class GitoeChange
           @sha1_commit change.oid_new
         ]
       rebase_finish2: (matched, change)->
+        @li [
+          if matched[1]
+            @git_command "git rebase #{matched[1]}"
+          else
+            @git_command "git rebase"
+          @span ": rebase "
+          @ref (@ref_fullname change)
+          @span " to "
+          @sha1_commit change.oid_new
+        ]
+      rebase_finish3: (matched, change)->
         @li [
           if matched[1]
             @git_command "git rebase #{matched[1]}"
