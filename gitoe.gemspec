@@ -8,7 +8,7 @@ Gem::Specification.new do |gem|
   gem.version       = Gitoe::VERSION
   gem.authors       = ["Wang Guan"]
   gem.email         = ["momocraft@gmail.com"]
-  gem.description   = %q{visualize local git activities}
+  gem.description   = %q{a local web app, to show local git changes}
   gem.summary       = %q{visualize local git activities}
   gem.homepage      = "https://github.com/jokester/gitoe"
 
