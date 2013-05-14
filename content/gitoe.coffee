@@ -17,120 +17,166 @@ flash = do->
     flash_div.text(text)
     setTimeout(clear, delay) if delay
 
+GitoeHistorian   = @exports.gitoe.GitoeHistorian or throw "GitoeHistorian not found"
 GitoeRepo   = @exports.gitoe.GitoeRepo   or throw "GitoeRepo not found"
 GitoeCanvas = @exports.gitoe.GitoeCanvas or throw "GitoeCanvas not found"
 
-class GitoeController
-  constructor: (@selectors)->
-    @init_canvas()
-    @init_repo()
-    @init_control()
-    @init_control_repo()
+class GitoeUI
 
-  init_canvas:()->
-    id_canvas = $(@selectors.canvas.canvas).attr("id")
-    id_canvas or throw "canvas not found"
-    div = $(@selectors.canvas.root)
-    @canvas = new GitoeCanvas id_canvas, div, { }
+  constructor: ( id )->
+    @historian = new GitoeHistorian()
+    @cb = {}
+    @root = $( "##{ id }" )
+    @init_dom()
+    @bind_events()
+
+  set_cb: (new_cb)->
+    #   repo_open     : ( path )->
+    for name, fun of new_cb
+      @cb[name] = fun
+
+  init_dom: ()->
+    cb = @cb
+    @sections = {}
+    @elems = {}
+
+    repo_path = @elems.repo_path = $("<input>").val("/home/mono/gitoe")
+    @elems.repo_open    = $("<input>").attr( type: "button" ).val("open").on "click", ->
+      cb.repo_open? repo_path.val()
+    @elems.num_commits  = $("<span>").text 0
+    @elems.num_tags     = $("<span>").text 0
+    @elems.history = $("<ol>")
+    @elems.repo_title = $("<h3>")
+
+    @root.append [
+      @sections.open = $("<div>").append [
+        $("<h3>").text("open repo")
+        $("<hr>")
+        @elems.repo_path
+        @elems.repo_open
+      ]
+      @sections.status = $("<div>").hide().append [
+        @elems.repo_title
+        $("<hr>")
+        $("<ul>").append [
+          $("<li>").text(" commits").prepend( @elems.num_commits )
+          $("<li>").text(" tags").prepend( @elems.num_tags )
+        ]
+      ]
+      @sections.history= $("<div>").hide().append [
+        $("<h3>").text("history")
+        $("<hr>")
+        @elems.history
+      ]
+    ]
+
+  open_success: ()->
+    @slideUp "open"
+    @slideDown "status"
+    @slideDown "history"
+
+  update_status: ( status )=>
+    console.log status
+    @elem("repo_title").text( status.path )
+    @historian.parse status.refs
+
+  update_num_commits: (num_commits)=>
+    @elem("num_commits").text( num_commits )
+
+  update_num_tags: (num_tags)=>
+    @elem("num_tags").text( num_tags )
+
+  update_reflog: (changes)=>
+    cb = @cb
+    list_changes  = @elem "history"
+    list_changes.empty()
+    for change in changes
+      li = change.to_html()
+      do (change,li)->
+        li.on "click", ->
+          cb.show_change? change.on_click()
+      list_changes.append li
+
+  slideDown: (section)=>
+    @section( section ).slideDown()
+  slideUp: (section)->
+    @section( section ).slideUp()
+
+  section: (name)->
+    @sections[ name ]
+
+  elem: (name)->
+    @elems[ name ]
+
+  bind_events: ()->
+
+    @historian.set_cb {
+      update_reflog  : @update_reflog
+      update_num_tags: @update_num_tags
+    }
+
+class GitoeController
+  constructor: ( ids )->
+    @init_repo()
+    @init_canvas( ids.graph )
+    @init_control( ids.control )
+    @bind_events()
 
   init_repo: ()->
-    update = @update_control_repo_status
-    repo = new GitoeRepo {
-      ajax_error    : (arg...)->
+    @repo = new GitoeRepo()
+
+  init_canvas:( id )->
+    @canvas = new GitoeCanvas( id )
+
+  init_control: ( id )->
+    @ui = new GitoeUI( id )
+
+  bind_events: ()->
+    repo      = @repo
+    canvas    = @canvas
+    ui        = @ui
+
+    repo.set_cb {
+      ajax_error      : (arg...)->
         log 'ajax_error',arg... # TODO actual error handling
 
-      fetched_commit: (to_fetch, fetched)->
-        update 'commits', fetched + to_fetch
+      fetched_commit  : (to_fetch, fetched)->
         flash "#{to_fetch} commits to fetch", 1000
+        ui.update_num_commits( fetched )
         if to_fetch > 0
           repo.fetch_commits()
+        else
+          repo.fetch_alldone()
 
-      located_commit: @canvas.add_commit_async
+      fetch_status    : (status)->
+        repo.fetch_commits()
 
-      new_reflogs   : ( refs )->
-        log 'TODO handle these new_reflogs:', refs
-        for to_update in [
-          'local_branches'
-          'remote_branches'
-          'tags'
-        ]
-          update to_update, Object.keys(refs[to_update]).length
+      yield_commit    : canvas.add_commit_async
     }
-    @repo = repo
 
-  init_control: ()=>
-    for to_hide in [
-      'repo_status'
-      'refs'
-      'history'
-    ]
-      $(@selectors[to_hide].root)
-        .hide()
+    ui.set_cb {
+      repo_open : (path)->
+        flash "opening #{path}",false
+        repo.open path, {
+          fail:    (wtf)->
+            flash "error opening #{path}"
+          success: (response)-> # opened
+            flash "opened #{path}", 2000
 
-  init_control_repo: ()->
-    # binding
-    repo = @repo
-    s = @selectors.repo_open
-    s_all = @selectors
-    update = @update_control_repo_status
-
-    $(s.button_open).on 'click',->
-      repo_path = $(s.input_repo_path).val()
-      flash "opening #{repo_path}",false
-      repo.open repo_path, {
-        fail:    (wtf)->
-          flash "error opening #{repo_path}"
-        success: (response)-> # open success
-
-          update 'path', response.path
-          repo.fetch_status {
-            success: (response)-> # got status
-
-              flash "opened #{repo_path}", 2000
-              $(s.root).hide()
-              for other in [
-                'repo_status'
-                'refs'
-                'history'
-              ]
-                $(s_all[other].root)
-                  .slideDown()
-              repo.fetch_commits()
-          }
-      }
-
-  update_control_repo_status: (key,value)=>
-    unless @selectors.repo_status[key]
-      throw "illigal key '#{key}'"
-    $(@selectors.repo_status[key]).text(value)
+            repo.fetch_status {
+              success: ( status )->
+                ui.open_success()
+                ui.update_status( status )
+            }
+        }
+      show_change: ( fun )->
+        fun.apply( canvas )
+    }
 
 $ ->
-  ids = {
-    repo_open:   {
-      root           : '#control-repo_open'
-      button_open    : '#button-open-repo'
-      input_repo_path: '#input-repo-path'
-    }
-    repo_status: {
-      root           : '#control-repo_status'
-      path           : '#control-repo_status .path'
-      commits        : '#control-repo_status .commits'
-      tags           : '#control-repo_status .tags'
-      local_branches : '#control-repo_status .local.branches'
-      remote_branches: '#control-repo_status .remote.branches'
-    }
-    refs: {
-      root: '#control-refs'
-    }
-    history: {
-      root: '#control-history'
-    }
-    canvas:  {
-      root:   "#canvas-container"
-      canvas: "#graph"
-    }
+  ids = { # todo move this to Controller class
+    control: 'control'
+    graph:   'graph'
   }
 
   c = new GitoeController( ids )
-
-  $("#button-open-repo").click() # TODO remove this in normal version
