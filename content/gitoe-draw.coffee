@@ -98,7 +98,7 @@ class DAGLayout
 class GitoeCanvas
   @CONST  : {
     canvas: {
-      width : 100
+      width : 300
       height: 100
     }
     padding_left: 60

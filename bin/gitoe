@@ -1,27 +1,31 @@
 #!/usr/bin/env ruby
 
-require "sinatra"
+require 'optparse'
+
 require "gitoe/httpserver/static"
 require "gitoe/httpserver/repos"
 
-handler = \
-  begin
-    require "thin"
-    Rack::Handler::Thin
-  rescue LoadError
-    false
-  end ||
+handler_options = {
+  Port: 3000,
+  Host: '127.0.0.1',
+}
 
-handler ||= \
-  begin
-    require "mongrel"
-    Rack::Handler::Mongrel
-  rescue LoadError
-    false
+OptionParser.new do |opts|
+  opts.banner = "Usage: gitoe [options]"
+  opts.on("-p N", "--port N", "port to listen on, default: 3000") do |port|
+    handler_options[ :Port ] = port.to_i
   end
+  opts.on("-o", "--open", "open to non-localhost access") do
+    handler_options[ :Host ] = '0.0.0.0'
+  end
+end.parse!
 
-handler ||= \
-  Rack::Handler::WEBrick
+handlers = [ :Thin, :Mongrel, :WEBrick ]
+handler_name = handlers[
+  handlers.find_index {|h| Rack::Handler.const_defined? h }
+]
+
+handler = Rack::Handler::const_get handler_name
 
 root = Rack::Builder.new do
 
@@ -33,4 +37,4 @@ end
 
 root = Rack::Reloader.new(root,cooldown=0) if ENV["RACK_ENV"]=="development"
 
-handler.run root, Port: 12345
+handler.run root, handler_options

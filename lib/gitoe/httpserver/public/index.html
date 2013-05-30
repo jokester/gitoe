@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <link href='reset.css' rel='stylesheet' type='text/css'>
+    <link href='style.css' rel='stylesheet' type='text/css'>
+    <script src='/jquery/jquery-1.9.1.min.js'></script>
+    <script src='/jquery/jquery.scrollTo.min.js'></script>
+    <script src='/raphael-min.js'></script>
+    <script src='gitoe-repo.js'></script>
+    <script src='gitoe-draw.js'></script>
+    <script src='gitoe.js'></script>
+    <title>gitoe</title>
+    <script>
+      (function() {
+        $(function() {
+          if (/\?dev$/.test(location.href)) {
+            return setTimeout(location.reload.bind(location), 1000);
+          }
+        });
+      
+      }).call(this);
+    </script>
+  </head>
+  <body>
+    <div id='flash'></div>
+    <div class='fillh fillv' id='wrapper'>
+      <div class='fillv' id='left'>
+        <div class='fillh' id='banner'>
+          <h1>gitoe</h1>
+        </div>
+        <div class='fillh fillv scrollv' id='control'>
+        </div>
+      </div>
+      <div class='fillv fillh' id='right'>
+        <div class='fillh fillv scrollh scrollv' id='graph'></div>
+        <div class='fillh' id='footer'>
+          powered by
+          <a href='#'>jquery</a>
+          ,
+          <a href='#'>raphel</a>
+          ,
+          <a href='#'>rugged</a>
+          , and
+          <a href='#'>me</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
