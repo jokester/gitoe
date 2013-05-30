@@ -17,6 +17,11 @@ task :production do
   sh "bundle exec gitoe"
 end
 
+task :demo do
+  ENV["RACK_ENV"] = "production"
+  sh "bundle exec gitoe -o --port=12345"
+end
+
 desc "watch and re-compile with guard"
 task :guard do
   sh "bundle exec guard"
