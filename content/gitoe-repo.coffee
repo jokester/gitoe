@@ -1,4 +1,5 @@
 $ = jQuery or throw "demand jQuery"
+moment or throw "demand moment"
 
 url_root = "/repo"
 
@@ -211,6 +212,23 @@ class GitoeChange
       @span sha1, "sha1_commit"
     br: ->
       $('<br>')
+    pretty_abs_time: (change)->
+      @span moment.unix( change.committer.time ).format(), "git_abs_time"
+    pretty_relative_time: (change)->
+      @span moment.unix( change.committer.time ).fromNow(), "git_rel_time"
+    p_with_time: (change, elems)->
+      @p [
+        elems...
+        @span " at "
+        @pretty_abs_time change
+        @span " / "
+        @pretty_relative_time change
+      ]
+    p: ( elements )->
+      ret = $('<p>')
+      for e in elements
+        ret.append e
+      ret
   }
 
   @message_rules = {
@@ -235,11 +253,15 @@ class GitoeChange
     actions : {
       clone: (matched,change)->
         @li [
-          @git_command "git clone"
-          @span ": create "
-          @ref (@ref_fullname change)
-          @span " at "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            @git_command "git clone"
+          ]
+          @p [
+            @span "create "
+            @ref (@ref_fullname change)
+            @span " at "
+            @sha1_commit change.oid_new
+          ]
         ]
       branch: (matched, change)->
         # TODO show position better
@@ -258,7 +280,9 @@ class GitoeChange
         ]
       commit: (matched, change)->
         @li [
-          @git_command "git commit"
+          @p_with_time change, [
+            @git_command "git commit"
+          ]
           @span ": move "
           @ref (@ref_fullname change)
           @span " from "

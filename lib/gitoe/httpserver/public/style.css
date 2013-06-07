@@ -55,27 +55,31 @@ body, html, #wrapper {
   margin: 10px 0px; }
 #control li {
   margin: 5px 0px; }
-  #control li span.repo_name,
-  #control li span.ref_name,
-  #control li span.sha1_commit,
-  #control li span.git_command,
-  #control li span.comment {
+  #control li span.repo_name, #control li span.ref_name, #control li span.sha1_commit,
+  #control li span.git_command, #control li span.comment,
+  #control li span.git_abs_time, #control li span.git_rel_time {
     display: inline-block;
     font-family: monospace; }
   #control li span.repo_name {
     background-color: yellow; }
   #control li span.ref_name {
     background-color: lightblue; }
+  #control li span.git_abs_time {
+    background-color: yellow; }
+  #control li span.git_rel_time {
+    background-color: yellow; }
   #control li span.sha1_commit {
     background-color: pink;
     width: 4.94em;
     overflow: hidden; }
   #control li span.git_command {
-    min-width: 7em;
+    min-width: 10em;
     text-align: center;
     background-color: lightgreen; }
   #control li span.comment {
     font-size: 0.8em; }
+  #control li p:nth-child(n+2) {
+    padding-left: 2em; }
 #control li.unknown {
   color: red; }
 
