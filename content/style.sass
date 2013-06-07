@@ -1,4 +1,4 @@
-$left_width: 650px
+$left_width: 500px
 $header_height: 7em
 $footer_height: 1.5em
 
@@ -55,30 +55,40 @@ body, html, #wrapper
     margin: 10px 0px
 
   li
-    span.repo_name,
-    span.ref_name,
-    span.sha1_commit,
-    span.git_command,
-    span.comment
+
+    margin: 10px 0px
+    background-color: #dadada
+
+    span.repo_name, span.ref_name, span.sha1_commit,
+    span.git_command, span.comment,
+    span.git_abs_time, span.git_rel_time,
       display: inline-block
       font-family: monospace
+
     span.repo_name
       background-color: yellow
     span.ref_name
       background-color: lightblue
+    span.git_abs_time
+      background-color: yellow
+    span.git_rel_time
+      background-color: lightgreen
     span.sha1_commit
       background-color: pink
       width: 4.94em
       overflow: hidden
     span.git_command
-      min-width: 7em
+      min-width: 6em
       text-align: center
-      background-color: lightgreen
+      background-color: cyan
     span.comment
       font-size: 0.8em
 
     // list-style: none
-    margin: 5px 0px
+
+    p:nth-child(n+2)
+      // except first p
+      padding-left: 2em
   li.unknown
     color: red
 

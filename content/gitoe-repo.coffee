@@ -1,4 +1,5 @@
 $ = jQuery or throw "demand jQuery"
+moment or throw "demand moment"
 
 url_root = "/repo"
 
@@ -211,6 +212,23 @@ class GitoeChange
       @span sha1, "sha1_commit"
     br: ->
       $('<br>')
+    pretty_abs_time: (change)->
+      @span moment.unix( change.committer.time ).format("YYYY-MM-DD HH:mm:ss"), "git_abs_time"
+    pretty_relative_time: (change)->
+      @span moment.unix( change.committer.time ).fromNow(), "git_rel_time"
+    p_with_time: (change, elems)->
+      @p [
+        @pretty_abs_time change
+        @span " / "
+        @pretty_relative_time change
+        @span " : "
+        elems...
+      ]
+    p: ( elements )->
+      ret = $('<p>')
+      for e in elements
+        ret.append e
+      ret
   }
 
   @message_rules = {
@@ -235,175 +253,236 @@ class GitoeChange
     actions : {
       clone: (matched,change)->
         @li [
-          @git_command "git clone"
-          @span ": create "
-          @ref (@ref_fullname change)
-          @span " at "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            @git_command "git clone"
+          ]
+          @p [
+            @span "create "
+            @ref (@ref_fullname change)
+            @span " at "
+            @sha1_commit change.oid_new
+          ]
         ]
       branch: (matched, change)->
         # TODO show position better
         @li [
-          @git_command "git branch"
-          @span ": branch out "
-          @ref (@ref_fullname change)
-          @span " at "
-          @sha1_commit change.oid_new
-          if /^refs/.test matched[1]
-            @span " (was "
-          if /^refs/.test matched[1]
-            @ref @ref_realname(matched[1])
-          if /^refs/.test matched[1]
-            @span " )"
+          @p_with_time change, [
+            @git_command "git branch"
+          ]
+          @p [
+            @span "create branch "
+            @ref (@ref_fullname change)
+            @span " at "
+            @sha1_commit change.oid_new
+            if /^refs/.test matched[1]
+              @span " (was "
+            if /^refs/.test matched[1]
+              @ref @ref_realname(matched[1])
+            if /^refs/.test matched[1]
+              @span " )"
+          ]
         ]
       commit: (matched, change)->
         @li [
-          @git_command "git commit"
-          @span ": move "
-          @ref (@ref_fullname change)
-          @span " from "
-          @sha1_commit change.oid_old
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            @git_command "git commit"
+          ]
+          @p [
+            @span "move "
+            @ref (@ref_fullname change)
+            @span " from "
+            @sha1_commit change.oid_old
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       merge_commit: (matched, change)->
         @li [
-          @git_command "git merge"
-          @span ": move "
-          @span matched[2], "ref_name"
-          @span ' to '
-          @sha1_commit change.oid_new
-          @span ' by merging '
-          @span matched[1], "ref_name"
+          @p_with_time change, [
+            @git_command "git merge"
+          ]
+          @p [
+            @span "move "
+            @span matched[2], "ref_name"
+            @span ' to '
+            @sha1_commit change.oid_new
+            @span ' by merging '
+            @span matched[1], "ref_name"
+          ]
         ]
       commit_amend: (matched, change)->
         @li [
-          @git_command "git commit --amend"
-          @span ": move "
-          @ref (@ref_fullname change)
-          @span " from "
-          @sha1_commit change.oid_old
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            @git_command "git commit --amend"
+          ]
+          @p [
+            @span "move "
+            @ref (@ref_fullname change)
+            @span " from "
+            @sha1_commit change.oid_old
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       merge_ff: (matched, change)->
         @li [
-          @git_command "git merge"
-          @span ": move "
-          @ref (@ref_fullname change)
-          @span ' to '
-          @sha1_commit change.oid_new
-          @span ' by merging '
-          @span matched[1], "ref_name"
+          @p_with_time change, [
+            @git_command "git merge"
+            @span " (fast-forward)", "comment"
+          ]
+          @p [
+            @span "move "
+            @ref (@ref_fullname change)
+            @span ' to '
+            @sha1_commit change.oid_new
+            @span ' by merging '
+            @span matched[1], "ref_name"
+          ]
         ]
       reset: (matched, change)->
         @li [
-          @git_command "git reset"
-          @span ": point "
-          @ref (@ref_fullname change)
-          @span " to "
-          @sha1_commit change.oid_new
-          @span " ( was "
-          @sha1_commit change.oid_old
-          @span " )"
+          @p_with_time change, [
+            @git_command "git reset"
+          ]
+          @p [
+            @span "point "
+            @ref (@ref_fullname change)
+            @span " to "
+            @sha1_commit change.oid_new
+            @span "(was "
+            @sha1_commit change.oid_old
+            @span ")"
+          ]
         ]
       push: (matched, change)->
         @li [
-          @git_command "git push"
-          @span ": update "
-          @ref (@ref_fullname change)
-          @span " to "
-          @sha1_commit change.oid_new
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @span " ( was "
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @sha1_commit change.oid_old
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @span " )"
+          @p_with_time change, [
+            @git_command "git push"
+          ]
+          @p [
+            @span "update "
+            @ref (@ref_fullname change)
+            if change.oid_old isnt "0000000000000000000000000000000000000000"
+              @span " from "
+            if change.oid_old isnt "0000000000000000000000000000000000000000"
+              @sha1_commit change.oid_old
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       fetch: (matched, change)->
         @li [
-          @git_command "git fetch"
-          @span ": update "
-          @ref (@ref_fullname change)
-          @span " to "
-          @sha1_commit change.oid_new
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @span " ( was "
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @sha1_commit change.oid_old
-          if change.oid_old isnt "0000000000000000000000000000000000000000"
-            @span " )"
+          @p_with_time change, [
+            @git_command "git fetch"
+          ]
+          @p [
+            @span "update "
+            @ref (@ref_fullname change)
+            if change.oid_old isnt "0000000000000000000000000000000000000000"
+              @span " from "
+            if change.oid_old isnt "0000000000000000000000000000000000000000"
+              @sha1_commit change.oid_old
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       pull: (matched, change)->
         @li [
-          @git_command "git pull"
-          @span ": update "
-          @ref (@ref_fullname change)
-          @span " from "
-          @sha1_commit change.oid_old
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            @git_command "git pull"
+          ]
+          @p [
+            @span "update "
+            @ref (@ref_fullname change)
+            @span " from "
+            @sha1_commit change.oid_old
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       checkout: (matched, change, rest)->
         # TODO handle remaining "checkout SHA1" message of removed branch
         @li [
-          @git_command "git checkout"
-          @span ": checkout "
-          @ref matched[2]
-          @span " at "
-          @sha1_commit change.oid_new
+          @p_with_time change,[
+            @git_command "git checkout"
+          ]
+          @p [
+            @span "checkout "
+            @ref matched[2]
+            @span " at "
+            @sha1_commit change.oid_new
+          ]
         ]
       rename_remote: (matched, change)->
         @li [
-          @git_command "git remote rename"
-          @span ": rename "
-          @ref @ref_realname(matched[1])
-          @span " to "
-          @ref @ref_realname(matched[2])
+          @p_with_time change, [
+            @git_command "git remote rename"
+          ]
+          @p [
+            @span "rename "
+            @ref @ref_realname(matched[1])
+            @span " to "
+            @ref @ref_realname(matched[2])
+          ]
         ]
       rebase_finish: (matched, change)->
         @li [
-          if matched[1]
-            @git_command "git rebase #{matched[1]}"
-          else
-            @git_command "git rebase"
-          @span ": rebase "
-          @ref @ref_realname(matched[2])
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            if matched[1]
+              @git_command "git rebase #{matched[1]}"
+            else
+              @git_command "git rebase"
+          ]
+          @p [
+            @span "rebase "
+            @ref @ref_realname(matched[2])
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       rebase_finish2: (matched, change)->
         @li [
-          if matched[1]
-            @git_command "git rebase #{matched[1]}"
-          else
-            @git_command "git rebase"
-          @span ": rebase "
-          @ref (@ref_fullname change)
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            if matched[1]
+              @git_command "git rebase #{matched[1]}"
+            else
+              @git_command "git rebase"
+          ]
+          @p [
+            @span "rebase "
+            @ref (@ref_fullname change)
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       rebase_finish3: (matched, change)->
         @li [
-          if matched[1]
-            @git_command "git rebase #{matched[1]}"
-          else
-            @git_command "git rebase"
-          @span ": rebase "
-          @ref (@ref_fullname change)
-          @span " to "
-          @sha1_commit change.oid_new
+          @p_with_time change, [
+            if matched[1]
+              @git_command "git rebase #{matched[1]}"
+            else
+              @git_command "git rebase"
+          ]
+          @p [
+            @span ": rebase "
+            @ref (@ref_fullname change)
+            @span " to "
+            @sha1_commit change.oid_new
+          ]
         ]
       rebase_abort: (matched, change, rest)->
         if rest.length > 0
           if matched_head = rest[0].message.match /^checkout: moving from ([^ ]+)/
             real_ref = matched_head[1]
         @li [
-          @git_command "git rebase --abort"
-          @span ": didn't rebase "
-          if real_ref
-            @ref real_ref
+          @p_with_time change, [
+            @git_command "git rebase --abort"
+          ]
+          @p [
+            @span "didn't rebase "
+            if real_ref
+              @ref real_ref
+          ]
         ]
     }
   }

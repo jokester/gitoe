@@ -41,6 +41,7 @@ class GitoeUI
     @elems = {}
 
     repo_path = @elems.repo_path = $("<input>")
+    # repo_path = @elems.repo_path = $("<input>").val("/home/mono/gitoe") # test purpose
     @elems.repo_open    = $("<input>").attr( type: "button" ).val("open").on "click", ->
       cb.repo_open? repo_path.val()
     @elems.num_commits  = $("<span>").text 0
