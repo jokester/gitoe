@@ -8,7 +8,7 @@ end
 desc "gitoe (development)"
 task :run do
   ENV["RACK_ENV"] = "development"
-  sh "bundle exec gitoe"
+  sh "bundle exec gitoe -o --port=3000"
 end
 
 desc "gitoe (production)"
