@@ -67,15 +67,15 @@ body, html, #wrapper {
   #control li span.git_abs_time {
     background-color: yellow; }
   #control li span.git_rel_time {
-    background-color: yellow; }
+    background-color: lightgreen; }
   #control li span.sha1_commit {
     background-color: pink;
     width: 4.94em;
     overflow: hidden; }
   #control li span.git_command {
-    min-width: 10em;
+    min-width: 6em;
     text-align: center;
-    background-color: lightgreen; }
+    background-color: cyan; }
   #control li span.comment {
     font-size: 0.8em; }
   #control li p:nth-child(n+2) {

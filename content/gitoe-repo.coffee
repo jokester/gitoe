@@ -213,16 +213,16 @@ class GitoeChange
     br: ->
       $('<br>')
     pretty_abs_time: (change)->
-      @span moment.unix( change.committer.time ).format(), "git_abs_time"
+      @span moment.unix( change.committer.time ).format("YYYY-MM-DD HH:mm:ss"), "git_abs_time"
     pretty_relative_time: (change)->
       @span moment.unix( change.committer.time ).fromNow(), "git_rel_time"
     p_with_time: (change, elems)->
       @p [
-        elems...
-        @span " at "
         @pretty_abs_time change
         @span " / "
         @pretty_relative_time change
+        @span " : "
+        elems...
       ]
     p: ( elements )->
       ret = $('<p>')
