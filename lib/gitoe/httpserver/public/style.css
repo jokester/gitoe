@@ -30,6 +30,9 @@ body, html, #wrapper {
   bottom: 0px;
   height: 1.5em;
   background-color: #ffffaa; }
+  #footer a {
+    text-decoration: none;
+    margin: 0em 0.2em; }
 
 .scrollv {
   overflow-y: scroll; }

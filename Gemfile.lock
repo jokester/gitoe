@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitoe (0.1.0)
+    gitoe (0.1.1)
       activesupport
       rugged
       sinatra
