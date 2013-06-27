@@ -3,7 +3,8 @@
   <head>
     <link href='reset.css' rel='stylesheet' type='text/css'>
     <link href='style.css' rel='stylesheet' type='text/css'>
-    <script src='/jquery/jquery-1.9.1.min.js'></script>
+    <script src='jquery/jquery-1.9.1.min.js'></script>
+    <script src='ie_workaround.js'></script>
     <script src='jquery/jquery.scrollTo.min.js'></script>
     <script src='raphael-min.js'></script>
     <script src='moment.min.js'></script>
@@ -19,6 +20,23 @@
           }
         });
       
+      }).call(this);
+    </script>
+    <script>
+      (function() {
+        Object.keys || (Object.keys = function(o) {
+          var name, result, _i, _len;
+
+          result = [];
+          for (_i = 0, _len = o.length; _i < _len; _i++) {
+            name = o[_i];
+            if (o.hasOwnProperty(name)) {
+              result.push(name);
+            }
+          }
+          return result;
+        });
+
       }).call(this);
     </script>
   </head>

@@ -3,7 +3,8 @@
   %head
     %link(rel="stylesheet" type="text/css" href="reset.css")
     %link(rel="stylesheet" type="text/css" href="style.css")
-    %script(src="/jquery/jquery-1.9.1.min.js")
+    %script(src="jquery/jquery-1.9.1.min.js")
+    %script(src="ie_workaround.js")
     %script(src="jquery/jquery.scrollTo.min.js")
     %script(src="raphael-min.js")
     %script(src="moment.min.js")
@@ -15,6 +16,15 @@
       $ ->
         if /\?dev$/.test location.href
           setTimeout location.reload.bind(location), 1000
+    :coffee
+      # IE(<8) workaround
+      # from
+      Object.keys ||= (o)->
+        result = []
+        for name in o
+          if o.hasOwnProperty(name)
+            result.push name
+        return result
   %body
     #flash
     #wrapper.fillh.fillv
