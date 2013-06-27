@@ -1,0 +1,6 @@
+[submodule "vendor/jquery.scrollTo"]
+	path = vendor/jquery.scrollTo
+	url = https://github.com/flesler/jquery.scrollTo.git
+[submodule "vendor/reveal.js"]
+	path = vendor/reveal.js
+	url = https://github.com/hakimel/reveal.js.git

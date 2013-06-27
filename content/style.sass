@@ -1,0 +1,122 @@
+$left_width: 500px
+$header_height: 7em
+$footer_height: 1.5em
+
+body, html, #wrapper
+  height: 100%
+  width: 100%
+
+#left
+  width: $left_width
+  background-color: #eff
+
+#right
+  position: absolute
+  left: $left_width
+
+#banner
+  background-color: lightblue
+  height: $header_height
+  h1
+    padding: 10px 20px
+    font-size: 5em
+
+#control
+  position: absolute
+  top: $header_height
+#graph
+  position: absolute
+  bottom: $footer_height
+#footer
+  position: absolute
+  bottom: 0px
+  height: $footer_height
+  background-color: #ffa
+  a
+    text-decoration: none
+    margin: 0em 0.2em
+
+.scrollv
+  overflow-y: scroll
+.scrollh
+  overflow-x: scroll
+.fillh
+  position: absolute
+  left: 0px
+  right: 0px
+.fillv
+  position: absolute
+  top: 0px
+  bottom: 0px
+
+#control
+  legend
+    font-size: 20px
+  >div
+    background-color: #eee
+    padding: 15px
+    margin: 10px 0px
+
+  li
+
+    margin: 10px 0px
+    background-color: #dadada
+
+    span.repo_name, span.ref_name, span.sha1_commit,
+    span.git_command, span.comment,
+    span.git_abs_time, span.git_rel_time,
+      display: inline-block
+      font-family: monospace
+
+    span.repo_name
+      background-color: yellow
+    span.ref_name
+      background-color: lightblue
+    span.git_abs_time
+      background-color: yellow
+    span.git_rel_time
+      background-color: lightgreen
+    span.sha1_commit
+      background-color: pink
+      width: 4.94em
+      overflow: hidden
+    span.git_command
+      min-width: 6em
+      text-align: center
+      background-color: cyan
+    span.comment
+      font-size: 0.8em
+
+    // list-style: none
+
+    p:nth-child(n+2)
+      // except first p
+      padding-left: 2em
+  li.unknown
+    color: red
+
+#flash
+  position: fixed
+  z-index: 10
+  top: 20px
+  left: 20px
+  min-width: 60px
+  color: darkblue
+  background-color: #ccc
+#flash:empty
+  display: none
+
+::-webkit-scrollbar
+  width:  12px
+  height: 12px
+::-webkit-scrollbar-track
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3)
+  -webkit-border-radius: 10px
+  border-radius: 10px
+::-webkit-scrollbar-thumb
+  -webkit-border-radius: 10px
+  border-radius: 10px
+  background: rgba(255,0,0,0.8)
+  //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5)
+//::-webkit-scrollbar-thumb:window-inactive
+    background: rgba(255,0,0,0.4)
