@@ -20,13 +20,13 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "rugged"       # git
   gem.add_runtime_dependency "sinatra"      # web server
   gem.add_runtime_dependency "activesupport"# JSON encoding
+  gem.add_runtime_dependency "thin"
 
   gem.add_development_dependency "nanoc", ">= 3.6.3"
   gem.add_development_dependency "haml"
   gem.add_development_dependency "sass"
   gem.add_development_dependency "coffee-script"
 
-  gem.add_development_dependency "thin"
   gem.add_development_dependency "guard"
   gem.add_development_dependency "guard-nanoc"
 
