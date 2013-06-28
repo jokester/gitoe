@@ -1,7 +1,109 @@
+%script(src="raphael-min.js")
+
 %section
-  aaa
+  %h2
+    recover and visualize git command history
+  %br
+  %h5
+    Wang Guan
+  %h6
+    2013 Jun
+
 %section
-  bbb
+  -# 概要 === git
+  %h3 git
+  %br/
+  %ul
+    %li
+      distributed concurrent version control
+      -# 分散並行
+    %li
+      cheap and fast branch operation
+    %li
+      %span(style="color: red;") steep learning curve
+      %br
+      %span(style="color: blue;") (unless you go deeper)
+
+%section
+  %section
+    -# 概要 === gitoe
+    %h3 gitoe
+    %br/
+    %ul
+      %li
+        What git command did I run?
+        %br
+        ← Recover git command
+      %li
+        What did the command do?
+        %br
+        ← Visualize the underlying changes
+  %section
+    %h3 the name
+    %br/
+    %h5 git + toe
+
+%section
+  -# 構成
+  %section
+    %h3 server: ruby
+
+    %br/
+    %pre
+      %code{"data-trim"=>true, "class"=>"shell"}
+        $ gem install gitoe && gitoe
+        >> Thin web server (v1.5.1 codename Straight Razor)
+        >> Maximum connections set to 1024
+        >> Listening on 127.0.0.1:3000, CTRL+C to stop
+
+    %br/
+    %ul
+      %li
+        %a(href="https://github.com/libgit2/rugged") rugged
+        %br
+        read git repo with ruby
+      %li
+        %a(href="http://www.sinatrarb.com/") sinatra
+        %br
+        host the information in HTTP
+
+  %section
+    %h3 browser: javascript
+    %br/
+    %h4 based upon
+    %ul
+      %li
+        %a(href="http://jquery.com") jQuery
+      %li
+        %a(href="http://raphaeljs.com") Raphaël
+        %br
+        javascript vector graph
+
+
+%section
+  -# recover === git
+  %section
+    -# 概要 === gitoe
+    %h3 Recover
+    %ul
+      %li
+        Recover command history from log
+      %li
+
+    %ul
+      %li
+        aaa
+      %li
+        bbb
+
+    %br
+    %h2
+%section
+  %section
+    %h3 Visualize
+  %section
+    %h3
+      aaa
 -# !!!5
 -# %html(lang='en')
   %head
@@ -10,7 +112,6 @@
     %script(src="jquery/jquery-1.9.1.min.js")
     %script(src="ie_workaround.js")
     %script(src="jquery/jquery.scrollTo.min.js")
-    %script(src="raphael-min.js")
     %script(src="moment.min.js")
     %script(src="gitoe-repo.js")
     %script(src="gitoe-draw.js")
