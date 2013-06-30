@@ -1,9 +1,10 @@
-%script(src="raphael-min.js")
-
 %section
+  %h1
+    gitoe
   %h2
     recover and visualize git command history
   %br
+
   %h5
     Wang Guan
   %h6
@@ -12,7 +13,8 @@
 %section
   -# 概要 === git
   %h3 git
-  %br/
+  %br
+
   %ul
     %li
       distributed concurrent version control
@@ -28,27 +30,39 @@
   %section
     -# 概要 === gitoe
     %h3 gitoe
+    %h5 tries to answer 2 FAQs
     %br/
-    %ul
+    %ul( style=" q { color: pink } ;" )
       %li
-        What git command did I run?
+        %q What git command did I run?
         %br
-        ← Recover git command
+        → Recover git command
+        %ul
+          %li
+            %code git commit
+          %li
+            %code git rebase
+          %li
+            %code git push
       %li
-        What did the command do?
+        %q What did the git command do?
         %br
-        ← Visualize the underlying changes
-  %section
-    %h3 the name
-    %br/
-    %h5 git + toe
+        → Visualize the underlying changes
+        %ul
+          %li
+            move
+            %code refs/heads/master
+            from
+            %code commit1
+            to
+            %code commit2
 
 %section
   -# 構成
   %section
     %h3 screenshot
     %br/
-    %img(src="gitoe_browser.png")
+    %img(src="/pic/gitoe_screenshot.png")
 
   %section
     %h3 server: ruby @ linux
@@ -67,7 +81,7 @@
       %li
         %a(href="https://github.com/libgit2/rugged") rugged
         %br
-        read git repository with ruby
+        read git repository
       %li
         %a(href="http://www.sinatrarb.com/") sinatra
         %br
@@ -85,74 +99,87 @@
         javascript vector graph
 
 %section
-  -# recover === git
-  %section
-    %h3 Recover
+  %h3 Recover from reflog
 
-    %br
-    %ul
-      %li
-        recover executed git commands from reflog
-      %li
-        reflog: log of reference (in our case, branches)
-      %li
-        a command can cause multiple entries in reflog
-    %pre
-      %code(class="git") 0000000000000000000000000000000000000000 b486ccb64a4ee27a71e4e5cf7ac80bcc945bda99 Wang Guan &lt;momocraft@gmail.com&gt; 1372379386 +0000	branch: Created from refs/remotes/github/gh-pages-source
+  %br
+  %ul
+    %li
+      reflog: log of references (branches)
+  %pre
+    %code(class="git")
+      \.git/logs/refs/heads/gh-pages-source
+      b486ccb64a4ee27a71e4e5cf7ac80bcc945bda99
+      809ecd4e2868d5630102f20474a2f19385417c38
+      Wang Guan &lt;momocraft@gmail.com&gt;
+      1372390398 +0900
+      merge origin/gh-pages-source: Fast-forward
 
-    %ul(style="list-style-type: none;")
-      %li
-        %span(style="color:darkblue;") ○
-        which branch / when / who
-      %li
-        %span(style="color:darkblue;") ○
-        from, to
-      %li
-        %span(style="color:darkblue;") ○
-        a short description
-      %li
-        %span(style="color:red;") ×
-        original command
-
-  %section
-    %h3 Visualize
-
-    %br
-    %ul
-      %li
-        layout the commits
-      %li
-        list the commands
-      %li
-        show "effect" on command on click
+  %ul(style="list-style-type: none;")
+    %li
+      %span(style="color:darkblue;") ○
+      which branch / when / who
+    %li
+      %span(style="color:darkblue;") ○
+      from, to
+    %li
+      %span(style="color:darkblue;") ○
+      a short description
+    %li
+      %span(style="color:red;") ×
+      original command
+    %li
+      %span(style="color:blue;") →
+      %code git merge origin/gh-pages-source
 
 %section
-  %section
-    %h3 work
+  %h3 Visualize
 
+  %br
+  %ul
+    %li
+      list the commands
+    %li
+      layout and render the commits
+    %li
+      on click, show "effect" of command
+      %ul
+        %li
+          which branch / when
+        %li
+          from, to
+
+%section
+  %h3 work
+
+  %br
+  %ul
+    %li
+      Wang Guan
+      %ul
+        %li Plan
+        %li
+          Programming
+          %br
+          ruby / coffeescript
+        %li
+          Design
+          %br
+          HTML / CSS
     %br
-    %ul
-      %li
-        Wang Guan
-        %ul
-          %li plan
-          %li programming
-          %li design
-      %br
-      %li
-        About 10 advisers
-        %ul
-          %li proposal
-          %li feedback
+    %li
+      About 10 advisers
+      %ul
+        %li Proposal
+        %li Feedback
 
 %section
   %h3
     Difficuties
   %br
   %ul
-    %li Write and examine patterns in recovering
+    %li Write and examine patterns
+    %li Find and learn different technologies
     %li Show the necessary information, clearly
-    %li Try with different packages
 
 %section
   %h3
@@ -168,3 +195,19 @@
       Implement
     %li
       Improve
+
+%section
+  %h3 about
+  %br/
+
+  %ul
+    %li
+      %a(href="http://jokester.tk")
+        demo
+    %li
+      %a(href="https://github.com/jokester/gitoe")
+        repo @ github
+    %li
+      the name
+      %br
+      gitoe: git + toe

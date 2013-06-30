@@ -20,7 +20,11 @@ compile '*' do
     case item[:extension]
     when "haml"
       filter :haml
-      layout '/default/'
+      if  item.identifier =~ /master/
+        layout '/master/'
+      else
+        layout '/default/'
+      end
     when "coffee"
       filter :coffeescript
     when "sass"
@@ -48,3 +52,4 @@ route '*' do
 end
 
 layout '/default/', :erb
+layout '/master/', :erb

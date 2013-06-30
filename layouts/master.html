@@ -57,7 +57,7 @@
 
 	    multiplex: {
 		    // Example values. Generate your own.
-		    secret: null, // null so the clients do not have control of the master presentation
+		    secret: "13726032207921695817", // null so the clients do not have control of the master presentation
 		    id: '417b650c0a86e922', // id, obtained from socket.io server
 		    url: 'revealjs.jit.su:80' // Location of socket.io server
 		},
@@ -67,7 +67,7 @@
                 dependencies: [
 
 		{ src: '//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js', async: true },
-		{ src: '/reveal.js/plugin/multiplex/client.js', async: true },
+		{ src: '/reveal.js/plugin/multiplex/master.js', async: true },
 
                 { src: '/reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
                 { src: '/reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
@@ -84,3 +84,4 @@
 
         </body>
 </html>
+
